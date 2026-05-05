@@ -11,44 +11,45 @@ export default function PageMeta({ title, description, image }) {
       description ||
       "dikadoki menyediakan produk digital, jasa kreatif, dan layanan visual.";
 
-    const pageImage = image || "/og-image.jpg";
+    const siteUrl = "https://dikadoki.vercel.app";
     const pageUrl = window.location.href;
+
+    const pageImage = image
+      ? `${siteUrl}${image}`
+      : `${siteUrl}/og-image.jpg`;
 
     document.title = pageTitle;
 
-    const setMeta = (selector, attribute, value) => {
+    const setMeta = (selector, type, value) => {
       let tag = document.querySelector(selector);
 
       if (!tag) {
         tag = document.createElement("meta");
 
-        if (selector.includes("property=")) {
-          tag.setAttribute(
-            "property",
-            selector.match(/property="([^"]+)"/)?.[1] || ""
-          );
+        if (type === "property") {
+          tag.setAttribute("property", selector.match(/property="([^"]+)"/)?.[1]);
         } else {
-          tag.setAttribute("name", selector.match(/name="([^"]+)"/)?.[1] || "");
+          tag.setAttribute("name", selector.match(/name="([^"]+)"/)?.[1]);
         }
 
         document.head.appendChild(tag);
       }
 
-      tag.setAttribute(attribute, value);
+      tag.setAttribute("content", value);
     };
 
-    setMeta('meta[name="description"]', "content", pageDescription);
+    setMeta('meta[name="description"]', "name", pageDescription);
 
-    setMeta('meta[property="og:title"]', "content", pageTitle);
-    setMeta('meta[property="og:description"]', "content", pageDescription);
-    setMeta('meta[property="og:image"]', "content", pageImage);
-    setMeta('meta[property="og:url"]', "content", pageUrl);
-    setMeta('meta[property="og:type"]', "content", "website");
+    setMeta('meta[property="og:type"]', "property", "website");
+    setMeta('meta[property="og:title"]', "property", pageTitle);
+    setMeta('meta[property="og:description"]', "property", pageDescription);
+    setMeta('meta[property="og:url"]', "property", pageUrl);
+    setMeta('meta[property="og:image"]', "property", pageImage);
 
-    setMeta('meta[name="twitter:card"]', "content", "summary_large_image");
-    setMeta('meta[name="twitter:title"]', "content", pageTitle);
-    setMeta('meta[name="twitter:description"]', "content", pageDescription);
-    setMeta('meta[name="twitter:image"]', "content", pageImage);
+    setMeta('meta[name="twitter:card"]', "name", "summary_large_image");
+    setMeta('meta[name="twitter:title"]', "name", pageTitle);
+    setMeta('meta[name="twitter:description"]', "name", pageDescription);
+    setMeta('meta[name="twitter:image"]', "name", pageImage);
   }, [title, description, image]);
 
   return null;
