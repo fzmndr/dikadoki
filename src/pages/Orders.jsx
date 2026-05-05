@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { siteConfig } from "../config/site";
 import { adminConfig } from "../config/admin";
 import { routes } from "../config/routes";
+import PageMeta from "../components/PageMeta";
 
 import { formatRupiah } from "../utils/formatCurrency";
 import { formatDateTimeID } from "../utils/formatDate";
@@ -703,6 +704,11 @@ if (isCheckingSession) {
 
   if (!isAdminUnlocked) {
     return (
+        <>
+        <PageMeta
+            title="Admin Login"
+            description="Login admin dikadoki untuk mengakses dashboard orders."
+          />
       <main className="orders-page">
         <section className="orders-hero">
           <p className="section-label">Admin Area</p>
@@ -744,10 +750,16 @@ if (isCheckingSession) {
           </form>
         </section>
       </main>
+      </>
     );
   }
 
   return (
+    <>
+    <PageMeta
+      title="Admin Orders"
+      description="Dashboard admin untuk mengelola riwayat order dikadoki."
+    />
     <main className="orders-page">
       <section className="orders-hero">
         <p className="section-label">Order History</p>
@@ -1064,5 +1076,6 @@ if (isCheckingSession) {
         )}
       </section>
     </main>
+    </>
   );
 }

@@ -4,16 +4,24 @@ import ServicesSection from "../sections/Services";
 import About from "../sections/About";
 import FAQ from "../sections/FAQ";
 import Contact from "../sections/Contact";
+import PageMeta from "../components/PageMeta";
 
 export default function Home() {
   return (
-    <main>
-      <Hero />
-      <ProjectsSection />
-      <ServicesSection />
-      <About />
-      <FAQ />
-      <Contact />
-    </main>
+    <>
+      <PageMeta
+        title="Home"
+        description="dikadoki menyediakan produk digital, jasa kreatif, dan layanan visual untuk kebutuhan dokumentasi, konten, dan brand."
+      />
+
+      <main>
+        <Hero />
+        <ProjectsSection />
+        <ServicesSection />
+        <About />
+        <FAQ />
+        <Contact />
+      </main>
+    </>
   );
 }

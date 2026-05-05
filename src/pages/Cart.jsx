@@ -7,6 +7,7 @@ import { siteConfig } from "../config/site";
 import { routes } from "../config/routes";
 import { orderStatuses } from "../config/orderStatus";
 import { orderTypes, orderTypeOptions } from "../config/orderType";
+import PageMeta from "../components/PageMeta";
 
 import { formatRupiah } from "../utils/formatCurrency";
 import { generateOrderMessage } from "../utils/orderMessage";
@@ -275,6 +276,11 @@ export default function Cart() {
   };
 
   return (
+    <>
+    <PageMeta
+      title="Cart"
+      description="Tinjau keranjang belanja dikadoki dan lanjutkan checkout melalui WhatsApp."
+    />
     <main className="cart-page">
       <section className="cart-hero">
         <p className="section-label">Your Cart</p>
@@ -452,5 +458,6 @@ export default function Cart() {
         )}
       </section>
     </main>
+    </>
   );
 }

@@ -7,6 +7,7 @@ import SmoothScroll from "./components/SmoothScroll";
 import Loader from "./components/Loader";
 import RevealOnScroll from "./components/RevealOnScroll";
 import { routes } from "./config/routes";
+import ScrollToTop from "./components/ScrollToTop";
 
 import Home from "./pages/Home";
 import ProjectsPage from "./pages/Projects";
@@ -15,6 +16,8 @@ import Shop from "./pages/Shop";
 import Cart from "./pages/Cart";
 import ProductDetail from "./pages/ProductDetail";
 import Orders from "./pages/Orders";
+import NotFound from "./pages/NotFound";
+
 
 export default function App() {
   return (
@@ -24,6 +27,7 @@ export default function App() {
       <RevealOnScroll />
       <Navbar />
       <CustomCursor />
+      <ScrollToTop />
 
       <Routes>
         <Route path={routes.home} element={<Home />} />
@@ -33,6 +37,7 @@ export default function App() {
         <Route path={`${routes.shop}/:slug`} element={<ProductDetail />} />
         <Route path={routes.cart} element={<Cart />} />
         <Route path={routes.orders} element={<Orders />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
 
       <Footer />

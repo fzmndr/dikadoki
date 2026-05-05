@@ -2358,3 +2358,66 @@ main {
   opacity: 0.55;
   cursor: not-allowed;
 }
+/* =========================================================
+   NOT FOUND PAGE
+========================================================= */
+.not-found-page {
+  min-height: 100vh;
+  padding: 160px 5% 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.not-found-box {
+  width: min(760px, 100%);
+  text-align: center;
+  padding: 54px 34px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.not-found-box h1 {
+  font-size: clamp(48px, 9vw, 96px);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+  margin: 18px 0 22px;
+}
+
+.not-found-box p {
+  max-width: 520px;
+  margin: 0 auto;
+  color: #aaa;
+  line-height: 1.7;
+}
+
+.not-found-actions {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.not-found-actions a {
+  padding: 13px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 0.25s ease;
+}
+
+.not-found-actions a:first-child {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.not-found-actions a:hover {
+  background: #fff;
+  color: #000;
+}

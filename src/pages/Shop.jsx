@@ -4,6 +4,7 @@ import ProductCard from "../components/ProductCard";
 import CartDrawer from "../components/CartDrawer";
 import Toast from "../components/Toast";
 import { products } from "../data/products";
+import PageMeta from "../components/PageMeta";
 
 export default function Shop() {
   const [toast, setToast] = useState(false);
@@ -71,7 +72,13 @@ export default function Shop() {
   };
 
   return (
-    <main className="shop-page">
+        <>
+      <PageMeta
+        title="Shop"
+        description="Belanja produk digital, preset, LUT, template, dan paket jasa kreatif dari dikadoki."
+      />
+
+      <main className="shop-page">
       <section className="shop-hero">
         <p className="section-label">dikadoki</p>
         <h1>Shop Creative Products & Services</h1>
@@ -159,5 +166,6 @@ export default function Shop() {
         cartItems={cartItems}
       />
     </main>
+    </>
   );
 }
