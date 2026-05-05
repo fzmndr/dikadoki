@@ -1,9 +1,22 @@
 import { motion } from "framer-motion";
 import MagneticButton from "../components/MagneticButton";
+import { siteConfig } from "../config/site";
 
 export default function Contact() {
+  const email = "your@email.com";
+  const instagramUrl = "https://www.instagram.com/dikadoki";
+  const whatsappMessage =
+    "Halo dikadoki, saya ingin bertanya tentang layanan/produk yang tersedia.";
+
+  const whatsappUrl = `https://wa.me/${
+    siteConfig.whatsappNumber
+  }?text=${encodeURIComponent(whatsappMessage)}`;
+
   return (
-    <section id="contact" className="relative section container-custom overflow-hidden">
+    <section
+      id="contact"
+      className="relative section container-custom overflow-hidden"
+    >
       <div className="glow top-20 left-1/2 -translate-x-1/2" />
 
       <div className="relative z-10 text-center">
@@ -45,18 +58,30 @@ export default function Contact() {
           viewport={{ once: true }}
           className="flex flex-col items-center gap-8"
         >
-          <a href="mailto:your@email.com">
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
             <MagneticButton>Contact Me</MagneticButton>
           </a>
 
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-sm text-gray-400">
-            <a href="mailto:your@email.com" className="hover:text-white">
-              your@email.com
+            <a href={`mailto:${email}`} className="hover:text-white transition">
+              {email}
             </a>
-            <a href="#" className="hover:text-white">
+
+            <a
+              href={instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition"
+            >
               Instagram
             </a>
-            <a href="#" className="hover:text-white">
+
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition"
+            >
               WhatsApp
             </a>
           </div>
