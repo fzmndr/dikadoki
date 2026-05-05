@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+
+import PageMeta from "../components/PageMeta";
 
 import { insertOrderToSupabase } from "../services/orderService";
 
@@ -7,7 +9,6 @@ import { siteConfig } from "../config/site";
 import { routes } from "../config/routes";
 import { orderStatuses } from "../config/orderStatus";
 import { orderTypes, orderTypeOptions } from "../config/orderType";
-import PageMeta from "../components/PageMeta";
 
 import { formatRupiah } from "../utils/formatCurrency";
 import { generateOrderMessage } from "../utils/orderMessage";
@@ -26,6 +27,8 @@ export default function Cart() {
   const [formError, setFormError] = useState("");
   const [checkoutSuccess, setCheckoutSuccess] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -116,6 +119,24 @@ export default function Cart() {
     setCartItems([]);
     localStorage.removeItem("cart");
     window.dispatchEvent(new Event("cartUpdated"));
+
+    setFormError("");
+    setCheckoutSuccess("");
+    syncOrderType([]);
+  };
+
+  const resetCheckoutState = () => {
+    setCartItems([]);
+    localStorage.removeItem("cart");
+    window.dispatchEvent(new Event("cartUpdated"));
+
+    setCustomer({
+      name: "",
+      date: "",
+      phone: "",
+      orderType: orderTypes.bookingService,
+      note: "",
+    });
 
     setFormError("");
     setCheckoutSuccess("");
@@ -217,7 +238,17 @@ export default function Cart() {
 
     if (!savedToSupabase) {
       if (whatsappWindow) {
-        whatsappWindow.close();
+        whatsappWindow.document.write(`
+          <html>
+            <head>
+              <title>Checkout Failed</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; padding: 40px;">
+              <h2>Order gagal disimpan</h2>
+              <p>Silakan kembali ke halaman checkout dan coba lagi.</p>
+            </body>
+          </html>
+        `);
       }
 
       setFormError("Order gagal disimpan ke database. Coba lagi beberapa saat.");
@@ -248,216 +279,200 @@ export default function Cart() {
       window.location.href = whatsappUrl;
     }
 
+    resetCheckoutState();
     setIsCheckingOut(false);
 
-    setTimeout(() => {
-      const confirmClearAfterCheckout = window.confirm(
-        "Pesanan sudah diarahkan ke WhatsApp. Kosongkan keranjang sekarang?"
-      );
-
-      if (confirmClearAfterCheckout) {
-        setCartItems([]);
-        localStorage.removeItem("cart");
-        window.dispatchEvent(new Event("cartUpdated"));
-
-        setCustomer({
-          name: "",
-          date: "",
-          phone: "",
-          orderType: orderTypes.bookingService,
-          note: "",
-        });
-
-        setFormError("");
-        setCheckoutSuccess("");
-        syncOrderType([]);
-      }
-    }, 700);
+    navigate(`${routes.orderSuccess}?code=${orderCode}`);
   };
 
   return (
     <>
-    <PageMeta
-      title="Cart"
-      description="Tinjau keranjang belanja dikadoki dan lanjutkan checkout melalui WhatsApp."
-    />
-    <main className="cart-page">
-      <section className="cart-hero">
-        <p className="section-label">Your Cart</p>
-        <h1>Shopping Cart</h1>
-        <p>
-          Review produk atau layanan yang kamu pilih, lalu isi data checkout
-          sebelum lanjut ke WhatsApp.
-        </p>
-      </section>
+      <PageMeta
+        title="Cart"
+        description="Tinjau keranjang belanja dikadoki dan lanjutkan checkout melalui WhatsApp."
+      />
 
-      <section className="cart-content">
-        {cartItems.length === 0 ? (
-          <div className="cart-empty-box">
-            <h2>Keranjang masih kosong</h2>
-            <p>
-              Silakan pilih produk digital, preset, LUT, atau paket dokumentasi
-              dari halaman shop.
-            </p>
+      <main className="cart-page">
+        <section className="cart-hero">
+          <p className="section-label">Your Cart</p>
+          <h1>Shopping Cart</h1>
+          <p>
+            Review produk atau layanan yang kamu pilih, lalu isi data checkout
+            sebelum lanjut ke WhatsApp.
+          </p>
+        </section>
 
-            <Link to={routes.shop} className="cart-shop-btn">
-              Explore Shop
-            </Link>
-          </div>
-        ) : (
-          <div className="cart-checkout-layout">
-            <div className="cart-list-box">
-              <div className="cart-list">
-                {cartItems.map((item) => (
-                  <div className="cart-list-item" key={item.id}>
-                    <img src={item.image} alt={item.name} />
+        <section className="cart-content">
+          {cartItems.length === 0 ? (
+            <div className="cart-empty-box">
+              <h2>Keranjang masih kosong</h2>
+              <p>
+                Silakan pilih produk digital, preset, LUT, atau paket
+                dokumentasi dari halaman shop.
+              </p>
 
-                    <div className="cart-list-info">
-                      <span>{item.category}</span>
-                      <h3>{item.name}</h3>
-
-                      <p>
-                        {item.pricePrefix && `${item.pricePrefix} `}
-                        {formatRupiah(item.price * (item.quantity || 1))}
-                      </p>
-
-                      <div className="cart-qty">
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.id, "decrease")}
-                        >
-                          -
-                        </button>
-
-                        <strong>{item.quantity || 1}</strong>
-
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item.id, "increase")}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="cart-remove"
-                      onClick={() => removeItem(item.id)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <Link to={routes.shop} className="cart-shop-btn">
+                Explore Shop
+              </Link>
             </div>
+          ) : (
+            <div className="cart-checkout-layout">
+              <div className="cart-list-box">
+                <div className="cart-list">
+                  {cartItems.map((item) => (
+                    <div className="cart-list-item" key={item.id}>
+                      <img src={item.image} alt={item.name} />
 
-            <aside className="checkout-panel">
-              <div className="checkout-heading">
-                <span>Order Summary</span>
-                <h3>
-                  {totalItems} Item{totalItems > 1 ? "s" : ""}
-                </h3>
+                      <div className="cart-list-info">
+                        <span>{item.category}</span>
+                        <h3>{item.name}</h3>
+
+                        <p>
+                          {item.pricePrefix && `${item.pricePrefix} `}
+                          {formatRupiah(item.price * (item.quantity || 1))}
+                        </p>
+
+                        <div className="cart-qty">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, "decrease")}
+                          >
+                            -
+                          </button>
+
+                          <strong>{item.quantity || 1}</strong>
+
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, "increase")}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="cart-remove"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="checkout-total">
-                <span>Total Payment</span>
-                <strong>{formatRupiah(total)}</strong>
-              </div>
+              <aside className="checkout-panel">
+                <div className="checkout-heading">
+                  <span>Order Summary</span>
+                  <h3>
+                    {totalItems} Item{totalItems > 1 ? "s" : ""}
+                  </h3>
+                </div>
 
-              <div className="checkout-actions-top">
-                <Link to={routes.shop} className="back-shop-btn">
-                  Back to Shop
-                </Link>
+                <div className="checkout-total">
+                  <span>Total Payment</span>
+                  <strong>{formatRupiah(total)}</strong>
+                </div>
+
+                <div className="checkout-actions-top">
+                  <Link to={routes.shop} className="back-shop-btn">
+                    Back to Shop
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={clearCart}
+                    className="clear-cart-btn"
+                  >
+                    Clear Cart
+                  </button>
+                </div>
+
+                <div className="checkout-form">
+                  {formError && (
+                    <div className="checkout-error">{formError}</div>
+                  )}
+
+                  {checkoutSuccess && (
+                    <div className="checkout-success">{checkoutSuccess}</div>
+                  )}
+
+                  <div className="checkout-field">
+                    <label>Nama Lengkap *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={customer.name}
+                      onChange={handleCustomerChange}
+                      placeholder="Contoh: Dika"
+                    />
+                  </div>
+
+                  <div className="checkout-field">
+                    <label>Tanggal Kebutuhan *</label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={customer.date}
+                      onChange={handleCustomerChange}
+                    />
+                  </div>
+
+                  <div className="checkout-field">
+                    <label>Nomor WhatsApp</label>
+                    <input
+                      type="text"
+                      name="phone"
+                      value={customer.phone}
+                      onChange={handleCustomerChange}
+                      placeholder="Contoh: 0895xxxxxxx"
+                    />
+                  </div>
+
+                  <div className="checkout-field">
+                    <label>Jenis Pesanan</label>
+                    <select
+                      name="orderType"
+                      value={customer.orderType}
+                      onChange={handleCustomerChange}
+                    >
+                      {orderTypeOptions.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="checkout-field">
+                    <label>Catatan</label>
+                    <textarea
+                      name="note"
+                      value={customer.note}
+                      onChange={handleCustomerChange}
+                      placeholder="Tulis detail kebutuhan, lokasi, konsep, atau request khusus..."
+                      rows="4"
+                    />
+                  </div>
+                </div>
 
                 <button
                   type="button"
-                  onClick={clearCart}
-                  className="clear-cart-btn"
+                  onClick={checkoutWhatsapp}
+                  className="cart-whatsapp-btn"
+                  disabled={isCheckingOut}
                 >
-                  Clear Cart
+                  {isCheckingOut
+                    ? "Processing Order..."
+                    : "Checkout via WhatsApp"}
                 </button>
-              </div>
-
-              <div className="checkout-form">
-                {formError && <div className="checkout-error">{formError}</div>}
-
-                {checkoutSuccess && (
-                  <div className="checkout-success">{checkoutSuccess}</div>
-                )}
-
-                <div className="checkout-field">
-                  <label>Nama Lengkap *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={customer.name}
-                    onChange={handleCustomerChange}
-                    placeholder="Contoh: Dika"
-                  />
-                </div>
-
-                <div className="checkout-field">
-                  <label>Tanggal Kebutuhan *</label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={customer.date}
-                    onChange={handleCustomerChange}
-                  />
-                </div>
-
-                <div className="checkout-field">
-                  <label>Nomor WhatsApp</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={customer.phone}
-                    onChange={handleCustomerChange}
-                    placeholder="Contoh: 0895xxxxxxx"
-                  />
-                </div>
-
-                <div className="checkout-field">
-                  <label>Jenis Pesanan</label>
-                  <select
-                    name="orderType"
-                    value={customer.orderType}
-                    onChange={handleCustomerChange}
-                  >
-                    {orderTypeOptions.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="checkout-field">
-                  <label>Catatan</label>
-                  <textarea
-                    name="note"
-                    value={customer.note}
-                    onChange={handleCustomerChange}
-                    placeholder="Tulis detail kebutuhan, lokasi, konsep, atau request khusus..."
-                    rows="4"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={checkoutWhatsapp}
-                className="cart-whatsapp-btn"
-                disabled={isCheckingOut}
-              >
-                {isCheckingOut ? "Processing Order..." : "Checkout via WhatsApp"}
-              </button>
-            </aside>
-          </div>
-        )}
-      </section>
-    </main>
+              </aside>
+            </div>
+          )}
+        </section>
+      </main>
     </>
   );
 }

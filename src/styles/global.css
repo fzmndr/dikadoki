@@ -2193,6 +2193,95 @@ main {
   border-color: rgba(255, 255, 255, 0.42);
   background: rgba(255, 255, 255, 0.065);
 }
+
+/* =========================================================
+   ORDER SUCCESS PAGE
+========================================================= */
+.order-success-page {
+  min-height: 100vh;
+  padding: 160px 5% 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-success-box {
+  width: min(820px, 100%);
+  text-align: center;
+  padding: 56px 34px;
+  border-radius: 36px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.order-success-box h1 {
+  font-size: clamp(44px, 8vw, 88px);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+  margin: 18px 0 22px;
+}
+
+.order-success-box p {
+  max-width: 560px;
+  margin: 0 auto;
+  color: #aaa;
+  line-height: 1.7;
+}
+
+.order-success-code {
+  margin: 34px auto 0;
+  width: min(420px, 100%);
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.order-success-code span {
+  display: block;
+  margin-bottom: 8px;
+  color: #888;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.order-success-code strong {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
+.order-success-actions {
+  margin-top: 34px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.order-success-actions a {
+  padding: 13px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 0.25s ease;
+}
+
+.order-success-actions a:first-child {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.order-success-actions a:hover {
+  background: #fff;
+  color: #000;
+}
+
+
 /* =========================================================
    ADMIN LOCK
 ========================================================= */
