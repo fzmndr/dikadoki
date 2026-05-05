@@ -24,6 +24,12 @@ import {
   orderStatuses,
 } from "../config/orderStatus";
 
+import {
+  getCurrentAdminSession,
+  loginAdmin,
+  logoutAdmin,
+} from "../services/authService";
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [openOrderCode, setOpenOrderCode] = useState(null);
@@ -36,9 +42,12 @@ export default function Orders() {
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState("");
 
-  const [adminCode, setAdminCode] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminError, setAdminError] = useState("");
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const fileInputRef = useRef(null);
   const noteTimersRef = useRef({});
@@ -62,12 +71,22 @@ export default function Orders() {
   };
 
   useEffect(() => {
-    const adminUnlocked = sessionStorage.getItem("ordersAdminUnlocked");
+  const checkAdminSession = async () => {
+    try {
+      const session = await getCurrentAdminSession();
 
-    if (adminUnlocked === "true") {
-      setIsAdminUnlocked(true);
+      if (session) {
+        setIsAdminUnlocked(true);
+      }
+    } catch (error) {
+      console.error("Check admin session error:", error);
+    } finally {
+      setIsCheckingSession(false);
     }
-  }, []);
+  };
+
+  checkAdminSession();
+}, []);
 
   useEffect(() => {
     if (!isAdminUnlocked) return;
@@ -540,26 +559,44 @@ export default function Orders() {
     printWindow.document.close();
   };
 
-  const unlockAdmin = (e) => {
-    e.preventDefault();
+  const unlockAdmin = async (e) => {
+  e.preventDefault();
 
-    if (adminCode !== adminConfig.adminAccessCode) {
-      setAdminError("Kode admin salah.");
-      return;
-    }
+  if (!adminEmail.trim() || !adminPassword.trim()) {
+    setAdminError("Email dan password wajib diisi.");
+    return;
+  }
 
-    sessionStorage.setItem("ordersAdminUnlocked", "true");
+  setIsLoggingIn(true);
+  setAdminError("");
+
+  try {
+    await loginAdmin({
+      email: adminEmail,
+      password: adminPassword,
+    });
 
     setIsAdminUnlocked(true);
-    setAdminError("");
-    setAdminCode("");
-  };
+    setAdminEmail("");
+    setAdminPassword("");
+  } catch (error) {
+    console.error("Admin login error:", error);
+    setAdminError("Email atau password admin salah.");
+  } finally {
+    setIsLoggingIn(false);
+  }
+};
 
-  const lockAdmin = () => {
-    sessionStorage.removeItem("ordersAdminUnlocked");
+  const lockAdmin = async () => {
+    try {
+      await logoutAdmin();
+    } catch (error) {
+      console.error("Admin logout error:", error);
+    }
 
     setIsAdminUnlocked(false);
-    setAdminCode("");
+    setAdminEmail("");
+    setAdminPassword("");
     setAdminError("");
     setSearchTerm("");
     setDebouncedSearch("");
@@ -645,6 +682,25 @@ const processingOrders = orders.filter((order) => {
   return "whatsapp";
 };
 
+if (isCheckingSession) {
+  return (
+    <main className="orders-page">
+      <section className="orders-hero">
+        <p className="section-label">Admin Area</p>
+        <h1>Orders</h1>
+        <p>Memeriksa sesi admin...</p>
+      </section>
+
+      <section className="admin-lock-box">
+        <div className="admin-lock-form">
+          <p>Loading admin session...</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+
   if (!isAdminUnlocked) {
     return (
       <main className="orders-page">
@@ -656,21 +712,35 @@ const processingOrders = orders.filter((order) => {
 
         <section className="admin-lock-box">
           <form onSubmit={unlockAdmin} className="admin-lock-form">
-            <label>Admin Code</label>
+            <label>Email Admin</label>
+
+            <input
+              type="email"
+              value={adminEmail}
+              onChange={(e) => {
+                setAdminEmail(e.target.value);
+                setAdminError("");
+              }}
+              placeholder="admin@dikadoki.com"
+            />
+
+            <label>Password Admin</label>
 
             <input
               type="password"
-              value={adminCode}
+              value={adminPassword}
               onChange={(e) => {
-                setAdminCode(e.target.value);
+                setAdminPassword(e.target.value);
                 setAdminError("");
               }}
-              placeholder="Masukkan kode admin"
+              placeholder="Masukkan password admin"
             />
 
             {adminError && <p>{adminError}</p>}
 
-            <button type="submit">Unlock Orders</button>
+            <button type="submit" disabled={isLoggingIn}>
+              {isLoggingIn ? "Logging in..." : "Login Admin"}
+            </button>
           </form>
         </section>
       </main>
