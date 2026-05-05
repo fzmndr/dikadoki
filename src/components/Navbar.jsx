@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { routes } from "../config/routes";
@@ -8,6 +8,7 @@ export default function Navbar() {
   const [active, setActive] = useState("home");
   const [open, setOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [lastOrderCode, setLastOrderCode] = useState("");
   const [navHidden, setNavHidden] = useState(false);
 
   const lastScrollY = useRef(0);
@@ -16,38 +17,42 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const menu = [
-  { name: "Home", path: routes.home, id: "home", type: "section" },
-  { name: "Projects", path: routes.projects, id: "projects", type: "page" },
-  { name: "Services", path: routes.services, id: "services", type: "page" },
-  { name: "Shop", path: routes.shop, id: "shop", type: "page" },
-  {
-    name: "Track Order",
-    path: routes.trackOrder,
-    id: "track-order",
-    type: "page",
-  },
-  { name: "Contact", path: routes.home, id: "contact", type: "section" },
-];
+    { name: "Home", path: routes.home, id: "home", type: "section" },
+    { name: "Projects", path: routes.projects, id: "projects", type: "page" },
+    { name: "Services", path: routes.services, id: "services", type: "page" },
+    { name: "Shop", path: routes.shop, id: "shop", type: "page" },
+    {
+      name: "Track Order",
+      path: routes.trackOrder,
+      id: "track-order",
+      type: "page",
+    },
+    { name: "Contact", path: routes.home, id: "contact", type: "section" },
+  ];
 
-  const updateCartCount = () => {
+  const updateCartData = () => {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const savedLastOrderCode = localStorage.getItem("lastOrderCode") || "";
 
     const totalItems = cart.reduce((sum, item) => {
       return sum + (item.quantity || 1);
     }, 0);
 
     setCartCount(totalItems);
+    setLastOrderCode(savedLastOrderCode);
   };
 
   useEffect(() => {
-    updateCartCount();
+    updateCartData();
 
-    window.addEventListener("storage", updateCartCount);
-    window.addEventListener("cartUpdated", updateCartCount);
+    window.addEventListener("storage", updateCartData);
+    window.addEventListener("cartUpdated", updateCartData);
+    window.addEventListener("lastOrderUpdated", updateCartData);
 
     return () => {
-      window.removeEventListener("storage", updateCartCount);
-      window.removeEventListener("cartUpdated", updateCartCount);
+      window.removeEventListener("storage", updateCartData);
+      window.removeEventListener("cartUpdated", updateCartData);
+      window.removeEventListener("lastOrderUpdated", updateCartData);
     };
   }, []);
 
@@ -77,7 +82,7 @@ export default function Navbar() {
 
       lastScrollY.current = currentScrollY;
 
-      if (location.pathname !== "/") {
+      if (location.pathname !== routes.home) {
         if (location.pathname.startsWith(routes.shop)) {
           setActive("shop");
           return;
@@ -87,7 +92,7 @@ export default function Navbar() {
           setActive("cart");
           return;
         }
-        
+
         if (location.pathname === routes.trackOrder) {
           setActive("track-order");
           return;
@@ -107,13 +112,13 @@ export default function Navbar() {
 
         const section = document.getElementById(item.id);
 
-        if (section) {
-          const top = section.offsetTop - 140;
-          const height = section.offsetHeight;
+        if (!section) return;
 
-          if (currentScrollY >= top && currentScrollY < top + height) {
-            setActive(item.id);
-          }
+        const top = section.offsetTop - 140;
+        const height = section.offsetHeight;
+
+        if (currentScrollY >= top && currentScrollY < top + height) {
+          setActive(item.id);
         }
       });
     };
@@ -168,20 +173,31 @@ export default function Navbar() {
   const goToCart = () => {
     setOpen(false);
     setNavHidden(false);
+
     navigate(routes.cart);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const goToLastOrder = () => {
+    if (!lastOrderCode) return;
+
+    setOpen(false);
+    setNavHidden(false);
+
+    navigate(`${routes.trackOrder}?code=${lastOrderCode}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
     <motion.nav
-        initial={{ y: -80, opacity: 0 }}
-        animate={{
-          y: navHidden ? -120 : 0,
-          opacity: navHidden ? 0 : 1,
-        }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="fixed top-0 left-0 z-50 w-full px-4 md:px-8 py-4"
-      >
+      initial={{ y: -80, opacity: 0 }}
+      animate={{
+        y: navHidden ? -120 : 0,
+        opacity: navHidden ? 0 : 1,
+      }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="fixed top-0 left-0 z-50 w-full px-4 md:px-8 py-4"
+    >
       <div
         className={`mx-auto max-w-[1400px] flex items-center justify-between rounded-full px-6 md:px-8 py-4 transition-all duration-500 ${
           scrolled
@@ -220,6 +236,16 @@ export default function Navbar() {
         </ul>
 
         <div className="hidden md:flex items-center gap-3">
+          {lastOrderCode && (
+            <button
+              type="button"
+              onClick={goToLastOrder}
+              className="last-order-nav-btn"
+            >
+              Last Order
+            </button>
+          )}
+
           <button
             type="button"
             onClick={goToCart}
@@ -271,6 +297,18 @@ export default function Navbar() {
                 {item.name}
               </button>
             ))}
+
+            {lastOrderCode && (
+              <button
+                type="button"
+                onClick={goToLastOrder}
+                className={`text-left text-lg ${
+                  active === "track-order" ? "text-white" : "text-gray-400"
+                }`}
+              >
+                Last Order
+              </button>
+            )}
 
             <button
               type="button"

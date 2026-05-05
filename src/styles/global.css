@@ -1123,6 +1123,36 @@ main {
   font-weight: 700;
 }
 
+/* =========================================================
+   CART EMPTY ACTIONS
+========================================================= */
+.cart-empty-actions {
+  margin-top: 26px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.cart-track-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 13px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: 0.25s ease;
+}
+
+.cart-track-btn:hover {
+  background: #fff;
+  color: #000;
+}
+
 .cart-items {
   display: grid;
   gap: 18px;
@@ -2884,5 +2914,34 @@ main {
 
   .track-order-step {
     text-align: center;
+  }
+}
+/* =========================================================
+   LAST ORDER NAV BUTTON
+========================================================= */
+.last-order-nav-btn {
+  height: 38px;
+  padding: 0 15px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: none;
+  transition: 0.25s ease;
+}
+
+.last-order-nav-btn:hover {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+@media (max-width: 768px) {
+  .last-order-nav-btn {
+    cursor: auto;
   }
 }

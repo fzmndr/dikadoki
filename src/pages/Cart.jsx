@@ -15,6 +15,7 @@ import { generateOrderMessage } from "../utils/orderMessage";
 
 export default function Cart() {
   const [cartItems, setCartItems] = useState([]);
+  const [lastOrderCode, setLastOrderCode] = useState("");
 
   const [customer, setCustomer] = useState({
     name: "",
@@ -31,11 +32,13 @@ export default function Cart() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
+  const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
+  const savedLastOrderCode = localStorage.getItem("lastOrderCode") || "";
 
-    setCartItems(savedCart);
-    syncOrderType(savedCart);
-  }, []);
+  setCartItems(savedCart);
+  setLastOrderCode(savedLastOrderCode);
+  syncOrderType(savedCart);
+}, []);
 
   const syncOrderType = (items) => {
     const hasServiceProduct = items.some((item) => {
@@ -258,7 +261,11 @@ export default function Cart() {
     }
 
     saveOrderHistory(orderCode);
+    localStorage.setItem("lastOrderCode", orderCode);
+    setLastOrderCode(orderCode);
+    window.dispatchEvent(new Event("lastOrderUpdated"));
     setCheckoutSuccess("Order berhasil dibuat. WhatsApp sedang dibuka...");
+    
 
     const phone = siteConfig.whatsappNumber;
 
@@ -307,13 +314,29 @@ export default function Cart() {
             <div className="cart-empty-box">
               <h2>Keranjang masih kosong</h2>
               <p>
-                Silakan pilih produk digital, preset, LUT, atau paket
-                dokumentasi dari halaman shop.
+                Silakan pilih produk digital, preset, LUT, atau paket dokumentasi dari
+                halaman shop. Jika kamu sudah checkout, kamu bisa cek status pesanan lewat
+                Track Order.
               </p>
 
-              <Link to={routes.shop} className="cart-shop-btn">
-                Explore Shop
-              </Link>
+              <div className="cart-empty-actions">
+                <Link to={routes.shop} className="cart-shop-btn">
+                  Explore Shop
+                </Link>
+
+                <Link to={routes.trackOrder} className="cart-track-btn">
+                  Track Order
+                </Link>
+
+                {lastOrderCode && (
+                  <Link
+                    to={`${routes.trackOrder}?code=${lastOrderCode}`}
+                    className="cart-track-btn"
+                  >
+                    Track Last Order
+                  </Link>
+                )}
+              </div>
             </div>
           ) : (
             <div className="cart-checkout-layout">
