@@ -12,7 +12,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems = [] }) {
       <aside className="cart-drawer" onClick={(e) => e.stopPropagation()}>
         <div className="cart-drawer-header">
           <div>
-            <span>FZMndr Store</span>
+            <span>dikadoki Store</span>
             <h3>Your Cart</h3>
           </div>
 
