@@ -163,14 +163,14 @@ export default function Navbar() {
 
   return (
     <motion.nav
-      initial={{ y: -80, opacity: 0 }}
-      animate={{
-        y: navHidden ? -120 : 0,
-        opacity: navHidden ? 0 : 1,
-      }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-      className="fixed top-0 left-0 z-50 w-full px-4 md:px-8 py-4"
-    >
+        initial={{ y: -80, opacity: 0 }}
+        animate={{
+          y: navHidden ? -120 : 0,
+          opacity: navHidden ? 0 : 1,
+        }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="fixed top-0 left-0 z-50 w-full px-4 md:px-8 py-4"
+      >
       <div
         className={`mx-auto max-w-[1400px] flex items-center justify-between rounded-full px-6 md:px-8 py-4 transition-all duration-500 ${
           scrolled
