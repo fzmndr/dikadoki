@@ -73,7 +73,7 @@ export default function Shop() {
   return (
     <main className="shop-page">
       <section className="shop-hero">
-        <p className="section-label">FZMndr Store</p>
+        <p className="section-label">dikadoki</p>
         <h1>Shop Creative Products & Services</h1>
         <p>
           Pilih produk digital, preset, LUT, template, atau paket dokumentasi
