@@ -2688,3 +2688,41 @@ main {
     grid-template-columns: 1fr;
   }
 }
+/* =========================================================
+   TRACK ORDER STATUS BADGE
+========================================================= */
+.track-status-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px !important;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.track-status-badge.whatsapp {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.track-status-badge.processing {
+  background: rgba(255, 204, 80, 0.15);
+  color: #ffd36a;
+  border: 1px solid rgba(255, 204, 80, 0.26);
+}
+
+.track-status-badge.completed {
+  background: rgba(90, 255, 160, 0.14);
+  color: #7cffb2;
+  border: 1px solid rgba(90, 255, 160, 0.26);
+}
+
+.track-status-badge.cancelled {
+  background: rgba(255, 80, 80, 0.14);
+  color: #ff9a9a;
+  border: 1px solid rgba(255, 80, 80, 0.26);
+}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { orderStatuses } from "../config/orderStatus";
 
 import PageMeta from "../components/PageMeta";
 
@@ -63,6 +64,14 @@ useEffect(() => {
   fetchOrderByCode(initialCode);
 }, [initialCode]);
 
+const getStatusClass = (status) => {
+  if (status === orderStatuses.completed) return "completed";
+  if (status === orderStatuses.processing) return "processing";
+  if (status === orderStatuses.cancelled) return "cancelled";
+
+  return "whatsapp";
+};
+
   return (
     <>
       <PageMeta
@@ -108,7 +117,9 @@ useEffect(() => {
 
               <div>
                 <span>Status</span>
-                <strong>{order.status}</strong>
+                <strong className={`track-status-badge ${getStatusClass(order.status)}`}>
+                    {order.status}
+                </strong>
               </div>
 
               <div>

@@ -104,17 +104,27 @@ export default function Footer() {
           </p>
 
           <div className="flex flex-wrap justify-center gap-6">
-            <a href="#" className="hover:text-white transition">
+            <a
+              href="https://www.instagram.com/dikadoki"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition"
+            >
               Instagram
             </a>
 
-            <a href="#" className="hover:text-white transition">
+            <a
+              href="https://www.tiktok.com/dikadoki"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition"
+            >
               TikTok
             </a>
 
-            <a href="#" className="hover:text-white transition">
-              LinkedIn
-            </a>
+            <Link to={routes.trackOrder} className="hover:text-white transition">
+              Track Order
+            </Link>
 
             <Link to={routes.orders} className="hover:text-white transition">
               Admin Orders
