@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { routes } from "../config/routes";
@@ -8,6 +8,9 @@ export default function Navbar() {
   const [active, setActive] = useState("home");
   const [open, setOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [navHidden, setNavHidden] = useState(false);
+
+  const lastScrollY = useRef(0);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -43,20 +46,42 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    setNavHidden(false);
+    setOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
+      const currentScrollY = window.scrollY;
+
+      setScrolled(currentScrollY > 50);
+
+      if (currentScrollY < 80) {
+        setNavHidden(false);
+      } else if (currentScrollY > lastScrollY.current + 8) {
+        setNavHidden(true);
+
+        if (open) {
+          setOpen(false);
+        }
+      } else if (currentScrollY < lastScrollY.current - 8) {
+        setNavHidden(false);
+      }
+
+      lastScrollY.current = currentScrollY;
 
       if (location.pathname !== "/") {
-        if (location.pathname.startsWith("/shop")) {
+        if (location.pathname.startsWith(routes.shop)) {
           setActive("shop");
           return;
         }
 
-        if (location.pathname === "/cart") {
+        if (location.pathname === routes.cart) {
           setActive("cart");
           return;
         }
-        
+
         const currentPage = menu.find((item) => item.path === location.pathname);
 
         if (currentPage) {
@@ -75,7 +100,7 @@ export default function Navbar() {
           const top = section.offsetTop - 140;
           const height = section.offsetHeight;
 
-          if (window.scrollY >= top && window.scrollY < top + height) {
+          if (currentScrollY >= top && currentScrollY < top + height) {
             setActive(item.id);
           }
         }
@@ -84,15 +109,19 @@ export default function Navbar() {
 
     handleScroll();
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [location.pathname]);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [location.pathname, open]);
 
   const goToSection = (id) => {
     setOpen(false);
+    setNavHidden(false);
 
-    if (location.pathname !== "/") {
-      navigate("/");
+    if (location.pathname !== routes.home) {
+      navigate(routes.home);
 
       setTimeout(() => {
         const section = document.getElementById(id);
@@ -114,6 +143,7 @@ export default function Navbar() {
 
   const handleMenuClick = (item) => {
     setOpen(false);
+    setNavHidden(false);
 
     if (item.type === "section") {
       goToSection(item.id);
@@ -126,15 +156,19 @@ export default function Navbar() {
 
   const goToCart = () => {
     setOpen(false);
-    navigate("/cart");
+    setNavHidden(false);
+    navigate(routes.cart);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
     <motion.nav
       initial={{ y: -80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
+      animate={{
+        y: navHidden ? -120 : 0,
+        opacity: navHidden ? 0 : 1,
+      }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       className="fixed top-0 left-0 z-50 w-full px-4 md:px-8 py-4"
     >
       <div
@@ -145,6 +179,7 @@ export default function Navbar() {
         }`}
       >
         <button
+          type="button"
           onClick={() => goToSection("home")}
           className="text-sm md:text-base font-semibold tracking-[0.35em]"
         >
@@ -155,6 +190,7 @@ export default function Navbar() {
           {menu.map((item) => (
             <li key={item.id}>
               <button
+                type="button"
                 onClick={() => handleMenuClick(item)}
                 className={`relative transition duration-300 ${
                   active === item.id ? "text-white" : "hover:text-white"
@@ -174,6 +210,7 @@ export default function Navbar() {
 
         <div className="hidden md:flex items-center gap-3">
           <button
+            type="button"
             onClick={goToCart}
             className={`cart-nav-btn ${
               active === "cart" ? "cart-nav-btn-active" : ""
@@ -184,6 +221,7 @@ export default function Navbar() {
           </button>
 
           <button
+            type="button"
             onClick={() => goToSection("contact")}
             className="rounded-full border border-white/20 px-5 py-2 text-xs tracking-[0.25em] uppercase text-white hover:bg-white hover:text-black transition"
           >
@@ -192,7 +230,11 @@ export default function Navbar() {
         </div>
 
         <button
-          onClick={() => setOpen(!open)}
+          type="button"
+          onClick={() => {
+            setOpen(!open);
+            setNavHidden(false);
+          }}
           className="md:hidden text-xs tracking-[0.3em] uppercase"
         >
           {open ? "Close" : "Menu"}
@@ -208,6 +250,7 @@ export default function Navbar() {
           <div className="flex flex-col gap-5">
             {menu.map((item) => (
               <button
+                type="button"
                 key={item.id}
                 onClick={() => handleMenuClick(item)}
                 className={`text-left text-lg ${
@@ -219,6 +262,7 @@ export default function Navbar() {
             ))}
 
             <button
+              type="button"
               onClick={goToCart}
               className={`text-left text-lg ${
                 active === "cart" ? "text-white" : "text-gray-400"
