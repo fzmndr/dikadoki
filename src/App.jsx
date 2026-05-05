@@ -17,6 +17,7 @@ import Cart from "./pages/Cart";
 import ProductDetail from "./pages/ProductDetail";
 import Orders from "./pages/Orders";
 import OrderSuccess from "./pages/OrderSuccess";
+import TrackOrder from "./pages/TrackOrder";
 import NotFound from "./pages/NotFound";
 
 
@@ -39,6 +40,7 @@ export default function App() {
         <Route path={routes.cart} element={<Cart />} />
         <Route path={routes.orders} element={<Orders />} />
         <Route path={routes.orderSuccess} element={<OrderSuccess />} />
+        <Route path={routes.trackOrder} element={<TrackOrder />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
 

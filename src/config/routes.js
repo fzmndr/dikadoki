@@ -6,4 +6,5 @@ export const routes = {
   cart: "/cart",
   orders: "/orders",
   orderSuccess: "/order-success",
+  trackOrder: "/track-order",
 };
