@@ -2304,6 +2304,34 @@ main {
   }
 }
 
+/* =========================================================
+   ORDER SUCCESS STATUS
+========================================================= */
+.order-success-status {
+  margin: 18px auto 0;
+  width: min(420px, 100%);
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.order-success-status span {
+  display: block;
+  margin-bottom: 10px;
+  color: #888;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.order-success-status p {
+  margin-top: 12px;
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 
 /* =========================================================
    ADMIN LOCK
@@ -2382,6 +2410,58 @@ main {
     cursor: auto;
   }
 }
+
+
+/* =========================================================
+   ADMIN ORDER STATUS SELECT
+========================================================= */
+.order-status-select {
+  min-width: 160px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  outline: none;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: none;
+}
+
+.order-status-select.whatsapp {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.order-status-select.processing {
+  background: rgba(255, 204, 80, 0.15);
+  color: #ffd36a;
+  border: 1px solid rgba(255, 204, 80, 0.26);
+}
+
+.order-status-select.completed {
+  background: rgba(90, 255, 160, 0.14);
+  color: #7cffb2;
+  border: 1px solid rgba(90, 255, 160, 0.26);
+}
+
+.order-status-select.cancelled {
+  background: rgba(255, 80, 80, 0.14);
+  color: #ff9a9a;
+  border: 1px solid rgba(255, 80, 80, 0.26);
+}
+
+.order-status-select option {
+  background: #111;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .order-status-select {
+    width: 100%;
+    cursor: auto;
+  }
+}
+
+
 /* =========================================================
    COPY ORDER MESSAGE BUTTON
 ========================================================= */
@@ -2725,4 +2805,84 @@ main {
   background: rgba(255, 80, 80, 0.14);
   color: #ff9a9a;
   border: 1px solid rgba(255, 80, 80, 0.26);
+}
+/* =========================================================
+   TRACK ORDER STATUS DESCRIPTION
+========================================================= */
+.track-status-description {
+  margin-top: 10px;
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   TRACK ORDER TIMELINE
+========================================================= */
+.track-order-timeline {
+  margin: 34px auto 0;
+  width: min(720px, 100%);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.track-order-step {
+  position: relative;
+  padding: 16px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #777;
+}
+
+.track-order-step.active {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.track-order-step span {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.track-order-step.active span {
+  background: #fff;
+  color: #000;
+}
+
+.track-order-step p {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.track-order-cancelled {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 80, 80, 0.14);
+  border: 1px solid rgba(255, 80, 80, 0.28);
+  color: #ff9a9a;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+@media (max-width: 768px) {
+  .track-order-timeline {
+    grid-template-columns: 1fr;
+  }
+
+  .track-order-step {
+    text-align: center;
+  }
 }

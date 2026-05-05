@@ -5,6 +5,10 @@ import PageMeta from "../components/PageMeta";
 
 import { routes } from "../config/routes";
 import { siteConfig } from "../config/site";
+import {
+  orderStatuses,
+  orderStatusDescriptions,
+} from "../config/orderStatus";
 
 export default function OrderSuccess() {
   const [searchParams] = useSearchParams();
@@ -63,6 +67,18 @@ export default function OrderSuccess() {
               </button>
             </div>
           )}
+
+          <div className="order-success-status">
+            <span>Status Pesanan</span>
+
+            <strong className="track-status-badge whatsapp">
+                {orderStatuses.whatsapp}
+            </strong>
+
+            <p>
+                {orderStatusDescriptions[orderStatuses.whatsapp]}
+            </p>
+          </div>
 
           <div className="order-success-actions">
             <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">

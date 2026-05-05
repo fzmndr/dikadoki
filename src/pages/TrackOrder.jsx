@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { orderStatuses } from "../config/orderStatus";
 
 import PageMeta from "../components/PageMeta";
 
 import { supabase } from "../lib/supabase";
 import { routes } from "../config/routes";
+import {
+  orderStatuses,
+  orderStatusDescriptions,
+  orderStatusSteps,
+} from "../config/orderStatus";
 
 import { formatRupiah } from "../utils/formatCurrency";
 import { formatDateTimeID } from "../utils/formatDate";
@@ -21,10 +25,12 @@ export default function TrackOrder() {
   const [isTracking, setIsTracking] = useState(false);
 
   const fetchOrderByCode = async (code) => {
-    if (!code.trim()) {
-        setTrackError("Masukkan kode order terlebih dahulu.");
-        setOrder(null);
-        return;
+    const cleanCode = code.trim();
+
+    if (!cleanCode) {
+      setTrackError("Masukkan kode order terlebih dahulu.");
+      setOrder(null);
+      return;
     }
 
     setIsTracking(true);
@@ -32,45 +38,53 @@ export default function TrackOrder() {
     setOrder(null);
 
     const { data, error } = await supabase
-        .from("public_order_tracking")
-        .select("*")
-        .eq("order_code", code.trim())
-        .maybeSingle();
+      .from("public_order_tracking")
+      .select("*")
+      .eq("order_code", cleanCode)
+      .maybeSingle();
 
     setIsTracking(false);
 
     if (error) {
-        console.error("Track order error:", error);
-        setTrackError("Gagal mengecek order. Coba lagi beberapa saat.");
-        return;
+      console.error("Track order error:", error);
+      setTrackError("Gagal mengecek order. Coba lagi beberapa saat.");
+      return;
     }
 
     if (!data) {
-        setTrackError("Order tidak ditemukan. Pastikan kode order benar.");
-        return;
+      setTrackError("Order tidak ditemukan. Pastikan kode order benar.");
+      return;
     }
 
     setOrder(data);
-    };
+  };
 
-const trackOrder = async (e) => {
-  e.preventDefault();
-  await fetchOrderByCode(orderCode);
-};
+  const trackOrder = async (e) => {
+    e.preventDefault();
+    await fetchOrderByCode(orderCode);
+  };
 
-useEffect(() => {
-  if (!initialCode) return;
+  useEffect(() => {
+    if (!initialCode) return;
 
-  fetchOrderByCode(initialCode);
-}, [initialCode]);
+    fetchOrderByCode(initialCode);
+  }, [initialCode]);
 
-const getStatusClass = (status) => {
-  if (status === orderStatuses.completed) return "completed";
-  if (status === orderStatuses.processing) return "processing";
-  if (status === orderStatuses.cancelled) return "cancelled";
+  const getStatusClass = (status) => {
+    if (status === orderStatuses.completed) return "completed";
+    if (status === orderStatuses.processing) return "processing";
+    if (status === orderStatuses.cancelled) return "cancelled";
 
-  return "whatsapp";
-};
+    return "whatsapp";
+  };
+
+  const getCurrentStepIndex = (status) => {
+    if (status === orderStatuses.cancelled) return -1;
+    if (status === orderStatuses.completed) return 3;
+    if (status === orderStatuses.processing) return 2;
+
+    return 1;
+  };
 
   return (
     <>
@@ -109,44 +123,81 @@ const getStatusClass = (status) => {
           {trackError && <div className="track-order-error">{trackError}</div>}
 
           {order && (
-            <div className="track-order-result">
-              <div>
-                <span>Kode Order</span>
-                <strong>{order.order_code}</strong>
+            <>
+              <div className="track-order-timeline">
+                {order.status === orderStatuses.cancelled ? (
+                  <div className="track-order-cancelled">
+                    Pesanan ini berstatus Cancelled.
+                  </div>
+                ) : (
+                  orderStatusSteps.map((step, index) => {
+                    const activeIndex = getCurrentStepIndex(order.status);
+                    const isActive = index <= activeIndex;
+
+                    return (
+                      <div
+                        className={`track-order-step ${
+                          isActive ? "active" : ""
+                        }`}
+                        key={`${step.label}-${index}`}
+                      >
+                        <span>{index + 1}</span>
+                        <p>{step.label}</p>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
-              <div>
-                <span>Status</span>
-                <strong className={`track-status-badge ${getStatusClass(order.status)}`}>
+              <div className="track-order-result">
+                <div>
+                  <span>Kode Order</span>
+                  <strong>{order.order_code}</strong>
+                </div>
+
+                <div>
+                  <span>Status</span>
+
+                  <strong
+                    className={`track-status-badge ${getStatusClass(
+                      order.status
+                    )}`}
+                  >
                     {order.status}
-                </strong>
-              </div>
+                  </strong>
 
-              <div>
-                <span>Nama</span>
-                <strong>{order.customer_name || "-"}</strong>
-              </div>
+                  <p className="track-status-description">
+                    {orderStatusDescriptions[order.status] ||
+                      "Status pesanan sedang diperbarui."}
+                  </p>
+                </div>
 
-              <div>
-                <span>Tanggal Kebutuhan</span>
-                <strong>{order.customer_date || "-"}</strong>
-              </div>
+                <div>
+                  <span>Nama</span>
+                  <strong>{order.customer_name || "-"}</strong>
+                </div>
 
-              <div>
-                <span>Jenis Pesanan</span>
-                <strong>{order.order_type || "-"}</strong>
-              </div>
+                <div>
+                  <span>Tanggal Kebutuhan</span>
+                  <strong>{order.customer_date || "-"}</strong>
+                </div>
 
-              <div>
-                <span>Tanggal Order</span>
-                <strong>{formatDateTimeID(order.created_at)}</strong>
-              </div>
+                <div>
+                  <span>Jenis Pesanan</span>
+                  <strong>{order.order_type || "-"}</strong>
+                </div>
 
-              <div className="track-order-total">
-                <span>Total</span>
-                <strong>{formatRupiah(order.total || 0)}</strong>
+                <div>
+                  <span>Tanggal Order</span>
+                  <strong>{formatDateTimeID(order.created_at)}</strong>
+                </div>
+
+                <div className="track-order-total">
+                  <span>Total</span>
+                  <strong>{formatRupiah(order.total || 0)}</strong>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           <div className="track-order-actions">
