@@ -16,12 +16,18 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const menu = [
-    { name: "Home", path: routes.home, id: "home", type: "section" },
-    { name: "Projects", path: routes.projects, id: "projects", type: "page" },
-    { name: "Services", path: routes.services, id: "services", type: "page" },
-    { name: "Shop", path: routes.shop, id: "shop", type: "page" },
-    { name: "Contact", path: routes.home, id: "contact", type: "section" },
-  ];
+  { name: "Home", path: routes.home, id: "home", type: "section" },
+  { name: "Projects", path: routes.projects, id: "projects", type: "page" },
+  { name: "Services", path: routes.services, id: "services", type: "page" },
+  { name: "Shop", path: routes.shop, id: "shop", type: "page" },
+  {
+    name: "Track Order",
+    path: routes.trackOrder,
+    id: "track-order",
+    type: "page",
+  },
+  { name: "Contact", path: routes.home, id: "contact", type: "section" },
+];
 
   const updateCartCount = () => {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -79,6 +85,11 @@ export default function Navbar() {
 
         if (location.pathname === routes.cart) {
           setActive("cart");
+          return;
+        }
+        
+        if (location.pathname === routes.trackOrder) {
+          setActive("track-order");
           return;
         }
 

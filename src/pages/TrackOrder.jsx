@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import PageMeta from "../components/PageMeta";
@@ -19,13 +19,11 @@ export default function TrackOrder() {
   const [trackError, setTrackError] = useState("");
   const [isTracking, setIsTracking] = useState(false);
 
-  const trackOrder = async (e) => {
-    e.preventDefault();
-
-    if (!orderCode.trim()) {
-      setTrackError("Masukkan kode order terlebih dahulu.");
-      setOrder(null);
-      return;
+  const fetchOrderByCode = async (code) => {
+    if (!code.trim()) {
+        setTrackError("Masukkan kode order terlebih dahulu.");
+        setOrder(null);
+        return;
     }
 
     setIsTracking(true);
@@ -35,24 +33,35 @@ export default function TrackOrder() {
     const { data, error } = await supabase
         .from("public_order_tracking")
         .select("*")
-        .eq("order_code", orderCode.trim())
+        .eq("order_code", code.trim())
         .maybeSingle();
 
     setIsTracking(false);
 
     if (error) {
-      console.error("Track order error:", error);
-      setTrackError("Gagal mengecek order. Coba lagi beberapa saat.");
-      return;
+        console.error("Track order error:", error);
+        setTrackError("Gagal mengecek order. Coba lagi beberapa saat.");
+        return;
     }
 
     if (!data) {
-      setTrackError("Order tidak ditemukan. Pastikan kode order benar.");
-      return;
+        setTrackError("Order tidak ditemukan. Pastikan kode order benar.");
+        return;
     }
 
     setOrder(data);
-  };
+    };
+
+const trackOrder = async (e) => {
+  e.preventDefault();
+  await fetchOrderByCode(orderCode);
+};
+
+useEffect(() => {
+  if (!initialCode) return;
+
+  fetchOrderByCode(initialCode);
+}, [initialCode]);
 
   return (
     <>
