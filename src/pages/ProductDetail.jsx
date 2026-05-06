@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { products } from "../data/products";
 import Toast from "../components/Toast";
@@ -10,6 +10,7 @@ import { formatRupiah } from "../utils/formatCurrency";
 
 export default function ProductDetail() {
   const { slug } = useParams();
+  const navigate = useNavigate();
 
   const [toast, setToast] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -19,8 +20,17 @@ export default function ProductDetail() {
   const isSoldOut = product?.stockStatus === "Sold Out";
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCartItems(savedCart);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [slug]);
+
+  useEffect(() => {
+    try {
+      const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
+      setCartItems(savedCart);
+    } catch {
+      localStorage.removeItem("cart");
+      setCartItems([]);
+    }
   }, []);
 
   if (!product) {
@@ -47,9 +57,7 @@ export default function ProductDetail() {
 
   const recommendedProducts = products
     .filter(
-      (item) =>
-        item.id !== product.id &&
-        item.category === product.category
+      (item) => item.id !== product.id && item.category === product.category
     )
     .slice(0, 3);
 
@@ -62,31 +70,45 @@ export default function ProductDetail() {
       ? recommendedProducts
       : fallbackRecommendedProducts;
 
-  const addToCart = (selectedProduct = product) => {
-    if (!selectedProduct || selectedProduct.stockStatus === "Sold Out") return;
+  const getExistingCart = () => {
+    try {
+      return JSON.parse(localStorage.getItem("cart")) || [];
+    } catch {
+      localStorage.removeItem("cart");
+      return [];
+    }
+  };
 
-    const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
+  const createUpdatedCart = (selectedProduct) => {
+    const existingCart = getExistingCart();
 
     const existingProduct = existingCart.find(
       (item) => item.id === selectedProduct.id
     );
 
-    let updatedCart;
-
     if (existingProduct) {
-      updatedCart = existingCart.map((item) =>
+      return existingCart.map((item) =>
         item.id === selectedProduct.id
           ? { ...item, quantity: (item.quantity || 1) + 1 }
           : item
       );
-    } else {
-      updatedCart = [...existingCart, { ...selectedProduct, quantity: 1 }];
     }
 
+    return [...existingCart, { ...selectedProduct, quantity: 1 }];
+  };
+
+  const saveCart = (updatedCart) => {
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     window.dispatchEvent(new Event("cartUpdated"));
-
     setCartItems(updatedCart);
+  };
+
+  const addToCart = (selectedProduct = product) => {
+    if (!selectedProduct || selectedProduct.stockStatus === "Sold Out") return;
+
+    const updatedCart = createUpdatedCart(selectedProduct);
+
+    saveCart(updatedCart);
     setDrawerOpen(true);
     setToast(true);
 
@@ -95,12 +117,18 @@ export default function ProductDetail() {
     }, 2500);
   };
 
+  const buyNow = () => {
+    if (!product || product.stockStatus === "Sold Out") return;
+
+    const updatedCart = createUpdatedCart(product);
+
+    saveCart(updatedCart);
+    navigate("/cart");
+  };
+
   return (
     <>
-      <PageMeta
-        title={product.name}
-        description={product.description}
-      />
+      <PageMeta title={product.name} description={product.description} />
 
       <main className="product-detail-page">
         <section className="product-detail-wrapper">
@@ -148,9 +176,14 @@ export default function ProductDetail() {
                 {isSoldOut ? "Sold Out" : "Add to Cart"}
               </button>
 
-              <Link to="/cart" className="product-detail-btn secondary">
-                View Cart
-              </Link>
+              <button
+                type="button"
+                onClick={buyNow}
+                className="product-detail-btn secondary"
+                disabled={isSoldOut}
+              >
+                Buy Now
+              </button>
 
               <Link to="/shop" className="product-detail-btn secondary">
                 Continue Shopping

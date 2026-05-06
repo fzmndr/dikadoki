@@ -31,15 +31,6 @@ export default function Cart() {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-  const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
-  const savedLastOrderCode = localStorage.getItem("lastOrderCode") || "";
-
-  setCartItems(savedCart);
-  setLastOrderCode(savedLastOrderCode);
-  syncOrderType(savedCart);
-}, []);
-
   const syncOrderType = (items) => {
     const hasServiceProduct = items.some((item) => {
       return (
@@ -73,6 +64,21 @@ export default function Cart() {
       orderType: orderTypes.bookingService,
     }));
   };
+
+  useEffect(() => {
+    try {
+      const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
+      const savedLastOrderCode = localStorage.getItem("lastOrderCode") || "";
+
+      setCartItems(savedCart);
+      setLastOrderCode(savedLastOrderCode);
+      syncOrderType(savedCart);
+    } catch {
+      localStorage.removeItem("cart");
+      setCartItems([]);
+      syncOrderType([]);
+    }
+  }, []);
 
   const updateQuantity = (id, action) => {
     const updatedCart = cartItems
@@ -166,6 +172,17 @@ export default function Cart() {
     return sum + (item.quantity || 1);
   }, 0);
 
+  const hasServiceProduct = cartItems.some((item) => {
+    return (
+      item.category === "Service Package" ||
+      item.category === "Video Production"
+    );
+  });
+
+  const hasDigitalOnly =
+    cartItems.length > 0 &&
+    cartItems.every((item) => item.category === "Digital Product");
+
   const generateOrderCode = () => {
     const now = new Date();
 
@@ -211,6 +228,18 @@ export default function Cart() {
     }
   };
 
+  const todayDate = new Date().toISOString().split("T")[0];
+
+  const normalizePhoneNumber = (phone) => {
+    return phone.replace(/\D/g, "");
+  };
+
+  const isValidPhoneNumber = (phone) => {
+    const normalizedPhone = normalizePhoneNumber(phone);
+
+    return normalizedPhone.length >= 10 && normalizedPhone.length <= 15;
+  };
+
   const checkoutWhatsapp = async () => {
     if (isCheckingOut) return;
 
@@ -221,8 +250,23 @@ export default function Cart() {
       return;
     }
 
-    if (!customer.date.trim()) {
-      setFormError("Tanggal kebutuhan wajib diisi dulu ya.");
+    if (!customer.phone.trim()) {
+      setFormError("Nomor WhatsApp wajib diisi dulu ya.");
+      return;
+    }
+
+    if (!isValidPhoneNumber(customer.phone)) {
+      setFormError("Nomor WhatsApp tidak valid. Gunakan 10–15 digit angka.");
+      return;
+    }
+
+    if (hasServiceProduct && !customer.date.trim()) {
+      setFormError("Tanggal kebutuhan wajib diisi untuk booking service.");
+      return;
+    }
+
+    if (hasServiceProduct && customer.date < todayDate) {
+      setFormError("Tanggal kebutuhan tidak boleh kurang dari hari ini.");
       return;
     }
 
@@ -265,7 +309,6 @@ export default function Cart() {
     setLastOrderCode(orderCode);
     window.dispatchEvent(new Event("lastOrderUpdated"));
     setCheckoutSuccess("Order berhasil dibuat. WhatsApp sedang dibuka...");
-    
 
     const phone = siteConfig.whatsappNumber;
 
@@ -313,10 +356,11 @@ export default function Cart() {
           {cartItems.length === 0 ? (
             <div className="cart-empty-box">
               <h2>Keranjang masih kosong</h2>
+
               <p>
-                Silakan pilih produk digital, preset, LUT, atau paket dokumentasi dari
-                halaman shop. Jika kamu sudah checkout, kamu bisa cek status pesanan lewat
-                Track Order.
+                Silakan pilih produk digital, preset, LUT, atau paket
+                dokumentasi dari halaman shop. Jika kamu sudah checkout, kamu
+                bisa cek status pesanan lewat Track Order.
               </p>
 
               <div className="cart-empty-actions">
@@ -348,6 +392,7 @@ export default function Cart() {
 
                       <div className="cart-list-info">
                         <span>{item.category}</span>
+
                         <h3>{item.name}</h3>
 
                         <p>
@@ -389,6 +434,7 @@ export default function Cart() {
               <aside className="checkout-panel">
                 <div className="checkout-heading">
                   <span>Order Summary</span>
+
                   <h3>
                     {totalItems} Item{totalItems > 1 ? "s" : ""}
                   </h3>
@@ -424,6 +470,7 @@ export default function Cart() {
 
                   <div className="checkout-field">
                     <label>Nama Lengkap *</label>
+
                     <input
                       type="text"
                       name="name"
@@ -434,28 +481,51 @@ export default function Cart() {
                   </div>
 
                   <div className="checkout-field">
-                    <label>Tanggal Kebutuhan *</label>
+                    <label>
+                      Tanggal Kebutuhan {hasServiceProduct ? "*" : ""}
+                    </label>
+
                     <input
                       type="date"
                       name="date"
                       value={customer.date}
+                      min={todayDate}
                       onChange={handleCustomerChange}
                     />
+
+                    {hasDigitalOnly && (
+                      <small>
+                        Optional untuk produk digital seperti preset atau LUT.
+                      </small>
+                    )}
+
+                    {hasServiceProduct && (
+                      <small>
+                        Wajib diisi untuk booking service, wedding, event, atau
+                        video production.
+                      </small>
+                    )}
                   </div>
 
                   <div className="checkout-field">
-                    <label>Nomor WhatsApp</label>
+                    <label>Nomor WhatsApp *</label>
+
                     <input
-                      type="text"
+                      type="tel"
                       name="phone"
                       value={customer.phone}
                       onChange={handleCustomerChange}
                       placeholder="Contoh: 0895xxxxxxx"
                     />
+
+                    <small>
+                      Digunakan untuk konfirmasi pesanan dan komunikasi lanjutan.
+                    </small>
                   </div>
 
                   <div className="checkout-field">
                     <label>Jenis Pesanan</label>
+
                     <select
                       name="orderType"
                       value={customer.orderType}
@@ -471,6 +541,7 @@ export default function Cart() {
 
                   <div className="checkout-field">
                     <label>Catatan</label>
+
                     <textarea
                       name="note"
                       value={customer.note}
