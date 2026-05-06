@@ -55,7 +55,7 @@ export default function Hero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.25)_45%,rgba(0,0,0,0.95)_100%)]" />
 
       {/* Decorative Glow */}
-      <div className="glow top-24 left-16" />
+      <div className="glow left-16 top-24" />
       <div className="glow bottom-24 right-16" />
 
       {/* Content */}
@@ -77,7 +77,7 @@ export default function Hero() {
           transition={{ duration: 1, ease: "easeOut" }}
           className="hero-title mb-8"
         >
-          Shop Cinematic <br /> Visual Essentials
+          Cinematic Visual <br /> Essentials
         </motion.h1>
 
         {/* Description */}
@@ -118,10 +118,30 @@ export default function Hero() {
 
           <button
             onClick={scrollToProducts}
-            className="text-sm text-gray-300 underline underline-offset-8 transition-colors duration-300 hover:text-white"
+            className="rounded-full border border-white/20 px-7 py-4 text-sm font-semibold text-gray-200 transition-all duration-300 hover:border-white/50 hover:bg-white/10 hover:text-white"
           >
             View Featured Products
           </button>
+        </motion.div>
+
+        {/* Mini Commerce Badges */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65, duration: 0.8 }}
+          className="mt-8 flex flex-wrap items-center justify-center gap-3 text-[10px] uppercase tracking-[0.25em] text-gray-400"
+        >
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2">
+            Best Seller Presets
+          </span>
+
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2">
+            From Rp 75.000
+          </span>
+
+          <span className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2">
+            Limited Service Slot
+          </span>
         </motion.div>
       </div>
 

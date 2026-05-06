@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { products } from "../data/products";
@@ -13,6 +13,11 @@ export default function ProductDetail() {
   const [toast, setToast] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+
+  useEffect(() => {
+  const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
+  setCartItems(savedCart);
+  }, []);
 
   const product = products.find((item) => item.slug === slug);
   const isSoldOut = product?.stockStatus === "Sold Out";

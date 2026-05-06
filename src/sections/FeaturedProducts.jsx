@@ -6,9 +6,9 @@ import { formatRupiah } from "../utils/formatCurrency";
 export default function FeaturedProducts() {
   const featuredProducts = products.slice(0, 3);
 
-  const scrollToShopPage = () => {
-    window.location.href = "/shop";
-  };
+    const goToProductDetail = (slug) => {
+    window.location.href = `/shop/${slug}`;
+    };
 
   return (
     <section
