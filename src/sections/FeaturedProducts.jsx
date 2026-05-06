@@ -139,7 +139,7 @@ export default function FeaturedProducts() {
           transition={{ delay: 0.25, duration: 0.8 }}
           className="mt-14 flex justify-center"
         >
-          <div onClick={scrollToShopPage} className="cursor-pointer">
+          <div onClick={goToShop} className="cursor-pointer">
             <MagneticButton>
               <span>View All Products</span>
             </MagneticButton>
