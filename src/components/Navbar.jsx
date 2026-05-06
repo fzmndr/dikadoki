@@ -30,8 +30,17 @@ export default function Navbar() {
     { name: "Contact", path: routes.home, id: "contact", type: "section" },
   ];
 
+  const getStoredCart = () => {
+    try {
+      return JSON.parse(localStorage.getItem("cart")) || [];
+    } catch {
+      localStorage.removeItem("cart");
+      return [];
+    }
+  };
+
   const updateCartData = () => {
-    const cart = JSON.parse(localStorage.getItem("cart")) || [];
+    const cart = getStoredCart();
     const savedLastOrderCode = localStorage.getItem("lastOrderCode") || "";
 
     const totalItems = cart.reduce((sum, item) => {
@@ -60,6 +69,35 @@ export default function Navbar() {
     lastScrollY.current = window.scrollY;
     setNavHidden(false);
     setOpen(false);
+
+    if (location.pathname === routes.cart) {
+      setActive("cart");
+      return;
+    }
+
+    if (location.pathname.startsWith(routes.shop)) {
+      setActive("shop");
+      return;
+    }
+
+    if (location.pathname === routes.trackOrder) {
+      setActive("track-order");
+      return;
+    }
+
+    if (location.pathname === routes.projects) {
+      setActive("projects");
+      return;
+    }
+
+    if (location.pathname === routes.services) {
+      setActive("services");
+      return;
+    }
+
+    if (location.pathname === routes.home) {
+      setActive("home");
+    }
   }, [location.pathname]);
 
   useEffect(() => {
@@ -83,27 +121,6 @@ export default function Navbar() {
       lastScrollY.current = currentScrollY;
 
       if (location.pathname !== routes.home) {
-        if (location.pathname.startsWith(routes.shop)) {
-          setActive("shop");
-          return;
-        }
-
-        if (location.pathname === routes.cart) {
-          setActive("cart");
-          return;
-        }
-
-        if (location.pathname === routes.trackOrder) {
-          setActive("track-order");
-          return;
-        }
-
-        const currentPage = menu.find((item) => item.path === location.pathname);
-
-        if (currentPage) {
-          setActive(currentPage.id);
-        }
-
         return;
       }
 
@@ -196,24 +213,24 @@ export default function Navbar() {
         opacity: navHidden ? 0 : 1,
       }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="fixed top-0 left-0 z-50 w-full px-4 md:px-8 py-4"
+      className="fixed left-0 top-0 z-50 w-full px-4 py-4 md:px-8"
     >
       <div
-        className={`mx-auto max-w-[1400px] flex items-center justify-between rounded-full px-6 md:px-8 py-4 transition-all duration-500 ${
+        className={`mx-auto flex max-w-[1400px] items-center justify-between rounded-full px-6 py-4 transition-all duration-500 md:px-8 ${
           scrolled
-            ? "bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl"
-            : "bg-white/[0.03] backdrop-blur-md border border-white/5"
+            ? "border border-white/10 bg-black/60 shadow-2xl backdrop-blur-xl"
+            : "border border-white/5 bg-white/[0.03] backdrop-blur-md"
         }`}
       >
         <button
           type="button"
           onClick={() => goToSection("home")}
-          className="text-sm md:text-base font-semibold tracking-[0.35em]"
+          className="text-sm font-semibold tracking-[0.35em] md:text-base"
         >
           dikadoki
         </button>
 
-        <ul className="hidden md:flex items-center gap-10 text-sm text-gray-400">
+        <ul className="hidden items-center gap-10 text-sm text-gray-400 md:flex">
           {menu.map((item) => (
             <li key={item.id}>
               <button
@@ -226,7 +243,7 @@ export default function Navbar() {
                 {item.name}
 
                 <span
-                  className={`absolute left-0 -bottom-2 h-[1px] bg-white transition-all duration-300 ${
+                  className={`absolute -bottom-2 left-0 h-[1px] bg-white transition-all duration-300 ${
                     active === item.id ? "w-full" : "w-0"
                   }`}
                 />
@@ -235,7 +252,7 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden items-center gap-3 md:flex">
           {lastOrderCode && (
             <button
               type="button"
@@ -260,7 +277,7 @@ export default function Navbar() {
           <button
             type="button"
             onClick={() => goToSection("contact")}
-            className="rounded-full border border-white/20 px-5 py-2 text-xs tracking-[0.25em] uppercase text-white hover:bg-white hover:text-black transition"
+            className="rounded-full border border-white/20 px-5 py-2 text-xs uppercase tracking-[0.25em] text-white transition hover:bg-white hover:text-black"
           >
             Let’s Talk
           </button>
@@ -272,9 +289,14 @@ export default function Navbar() {
             setOpen(!open);
             setNavHidden(false);
           }}
-          className="md:hidden text-xs tracking-[0.3em] uppercase"
+          className="text-xs uppercase tracking-[0.3em] md:hidden"
         >
           {open ? "Close" : "Menu"}
+          {cartCount > 0 && !open && (
+            <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-black">
+              {cartCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -282,7 +304,7 @@ export default function Navbar() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden mx-4 mt-3 rounded-3xl border border-white/10 bg-black/80 backdrop-blur-xl p-6"
+          className="mx-4 mt-3 rounded-3xl border border-white/10 bg-black/80 p-6 backdrop-blur-xl md:hidden"
         >
           <div className="flex flex-col gap-5">
             {menu.map((item) => (
@@ -313,11 +335,17 @@ export default function Navbar() {
             <button
               type="button"
               onClick={goToCart}
-              className={`text-left text-lg ${
+              className={`flex items-center justify-between text-left text-lg ${
                 active === "cart" ? "text-white" : "text-gray-400"
               }`}
             >
-              Cart {cartCount > 0 ? `(${cartCount})` : ""}
+              <span>Cart</span>
+
+              {cartCount > 0 && (
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-black">
+                  {cartCount}
+                </span>
+              )}
             </button>
           </div>
         </motion.div>

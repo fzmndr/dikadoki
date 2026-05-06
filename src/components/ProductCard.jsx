@@ -4,12 +4,26 @@ import { formatRupiah } from "../utils/formatCurrency";
 export default function ProductCard({ product, onAddToCart }) {
   const isSoldOut = product.stockStatus === "Sold Out";
 
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isSoldOut) return;
+    onAddToCart(product);
+  };
+
   return (
     <article className={`product-card ${isSoldOut ? "is-sold-out" : ""}`}>
-      <Link to={`/shop/${product.slug}`} className="product-image">
+      <Link
+        to={`/shop/${product.slug}`}
+        className="product-image"
+        aria-label={`View detail ${product.name}`}
+      >
         <img src={product.image} alt={product.name} />
 
-        {product.badge && <span className="product-badge">{product.badge}</span>}
+        {product.badge && (
+          <span className="product-badge">{product.badge}</span>
+        )}
       </Link>
 
       <div className="product-info">
@@ -27,7 +41,10 @@ export default function ProductCard({ product, onAddToCart }) {
           )}
         </div>
 
-        <h3>{product.name}</h3>
+        <Link to={`/shop/${product.slug}`} className="product-title-link">
+          <h3>{product.name}</h3>
+        </Link>
+
         <p>{product.description}</p>
 
         <div className="product-bottom">
@@ -43,7 +60,7 @@ export default function ProductCard({ product, onAddToCart }) {
 
             <button
               type="button"
-              onClick={() => onAddToCart(product)}
+              onClick={handleAddToCart}
               className="product-btn"
               disabled={isSoldOut}
             >

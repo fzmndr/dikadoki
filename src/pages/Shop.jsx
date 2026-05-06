@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import ProductCard from "../components/ProductCard";
 import CartDrawer from "../components/CartDrawer";
@@ -14,6 +14,11 @@ export default function Shop() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("default");
 
+  useEffect(() => {
+    const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
+    setCartItems(savedCart);
+  }, []);
+
   const categories = [
     "All",
     ...new Set(products.map((product) => product.category)),
@@ -24,7 +29,7 @@ export default function Shop() {
       const matchesCategory =
         activeCategory === "All" || product.category === activeCategory;
 
-      const keyword = searchTerm.toLowerCase();
+      const keyword = searchTerm.trim().toLowerCase();
 
       const matchesSearch =
         product.name.toLowerCase().includes(keyword) ||
@@ -37,11 +42,19 @@ export default function Shop() {
       if (sortBy === "lowest") return a.price - b.price;
       if (sortBy === "highest") return b.price - a.price;
       if (sortBy === "name") return a.name.localeCompare(b.name);
+
       return a.id - b.id;
     });
 
+  const resetFilter = () => {
+    setSearchTerm("");
+    setActiveCategory("All");
+    setSortBy("default");
+  };
+
   const addToCart = (product) => {
-    if (product.stockStatus === "Sold Out") return;
+    if (!product || product.stockStatus === "Sold Out") return;
+
     const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
 
     const existingProduct = existingCart.find((item) => item.id === product.id);
@@ -63,7 +76,6 @@ export default function Shop() {
 
     setCartItems(updatedCart);
     setDrawerOpen(true);
-
     setToast(true);
 
     setTimeout(() => {
@@ -72,100 +84,97 @@ export default function Shop() {
   };
 
   return (
-        <>
+    <>
       <PageMeta
         title="Shop"
         description="Belanja produk digital, preset, LUT, template, dan paket jasa kreatif dari dikadoki."
       />
 
       <main className="shop-page">
-      <section className="shop-hero">
-        <p className="section-label">dikadoki</p>
-        <h1>Shop Creative Products & Services</h1>
-        <p>
-          Pilih produk digital, preset, LUT, template, atau paket dokumentasi
-          cinematic untuk kebutuhan visual kamu.
-        </p>
-      </section>
+        <section className="shop-hero">
+          <p className="section-label">dikadoki</p>
 
-      <section className="shop-tools">
-        <div className="shop-search">
-          <input
-            type="text"
-            placeholder="Search product..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+          <h1>Shop Creative Products & Services</h1>
 
-        <div className="shop-filter">
-          {categories.map((category) => (
-            <button
-              type="button"
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className={activeCategory === category ? "active" : ""}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
+          <p>
+            Pilih produk digital, preset, LUT, template, atau paket dokumentasi
+            cinematic untuk kebutuhan visual kamu.
+          </p>
+        </section>
 
-        <div className="shop-sort">
-          <label htmlFor="sort-product">Sort by</label>
-
-          <select
-            id="sort-product"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="default">Default</option>
-            <option value="lowest">Harga Termurah</option>
-            <option value="highest">Harga Termahal</option>
-            <option value="name">Nama A-Z</option>
-          </select>
-        </div>
-      </section>
-
-      {filteredProducts.length > 0 ? (
-        <section className="shop-grid">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={addToCart}
+        <section className="shop-tools">
+          <div className="shop-search">
+            <input
+              type="text"
+              placeholder="Search product..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          ))}
-        </section>
-      ) : (
-        <section className="shop-empty-result">
-          <h2>Produk tidak ditemukan</h2>
-          <p>Coba gunakan kata kunci lain atau pilih kategori berbeda.</p>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchTerm("");
-              setActiveCategory("All");
-              setSortBy("default");
-            }}
-          >
-            Reset Filter
-          </button>
-        </section>
-      )}
+          </div>
 
-      <Toast
-        show={toast}
-        title="Added to Cart"
-        message="Produk berhasil ditambahkan ke keranjang."
-      />
+          <div className="shop-filter">
+            {categories.map((category) => (
+              <button
+                type="button"
+                key={category}
+                onClick={() => setActiveCategory(category)}
+                className={activeCategory === category ? "active" : ""}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
 
-      <CartDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        cartItems={cartItems}
-      />
-    </main>
+          <div className="shop-sort">
+            <label htmlFor="sort-product">Sort by</label>
+
+            <select
+              id="sort-product"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="default">Default</option>
+              <option value="lowest">Harga Termurah</option>
+              <option value="highest">Harga Termahal</option>
+              <option value="name">Nama A-Z</option>
+            </select>
+          </div>
+        </section>
+
+        {filteredProducts.length > 0 ? (
+          <section className="shop-grid">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={addToCart}
+              />
+            ))}
+          </section>
+        ) : (
+          <section className="shop-empty-result">
+            <h2>Produk tidak ditemukan</h2>
+
+            <p>Coba gunakan kata kunci lain atau pilih kategori berbeda.</p>
+
+            <button type="button" onClick={resetFilter}>
+              Reset Filter
+            </button>
+          </section>
+        )}
+
+        <Toast
+          show={toast}
+          title="Added to Cart"
+          message="Produk berhasil ditambahkan ke keranjang."
+        />
+
+        <CartDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          cartItems={cartItems}
+        />
+      </main>
     </>
   );
 }
