@@ -7,7 +7,14 @@ export default function Hero() {
   const scale = useTransform(scrollY, [0, 600], [1, 1.12]);
   const opacity = useTransform(scrollY, [0, 450], [1, 0]);
 
-  const scrollToProjects = () => {
+  const scrollToShop = () => {
+    const section = document.getElementById("shop");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const scrollToProducts = () => {
     const section = document.getElementById("projects");
     if (section) {
       section.scrollIntoView({ behavior: "smooth" });
@@ -27,7 +34,7 @@ export default function Hero() {
         muted
         playsInline
         preload="auto"
-        className="absolute inset-0 w-full h-full object-cover brightness-[0.55] contrast-[1.15]"
+        className="absolute inset-0 h-full w-full object-cover brightness-[0.5] contrast-[1.15]"
       >
         <source src="/videos/hero.mp4" type="video/mp4" />
       </motion.video>
@@ -35,83 +42,101 @@ export default function Hero() {
       {/* Soft Blur */}
       <div className="absolute inset-0 backdrop-blur-[1.5px]" />
 
-      {/* Overlay */}
+      {/* Dark Overlay */}
       <motion.div
         style={{ opacity }}
         className="absolute inset-0 bg-black/60"
       />
 
       {/* Cinematic Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/50 to-black" />
 
       {/* Side Shadow */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.25)_45%,rgba(0,0,0,0.95)_100%)]" />
 
-      {/* Glow */}
+      {/* Decorative Glow */}
       <div className="glow top-24 left-16" />
       <div className="glow bottom-24 right-16" />
 
       {/* Content */}
-      <div className="relative z-10 flex h-full flex-col items-center justify-center text-center container-custom">
+      <div className="container-custom relative z-10 flex h-full flex-col items-center justify-center text-center">
+        {/* Eyebrow */}
         <motion.p
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="mb-5 text-[10px] md:text-xs tracking-[0.45em] text-gray-400 uppercase"
+          className="mb-5 text-[10px] uppercase tracking-[0.45em] text-gray-400 md:text-xs"
         >
-          Photographer • Videographer • Storyteller
+          Premium Visual Goods • Digital Products • Creative Services
         </motion.p>
 
+        {/* Main Title */}
         <motion.h1
           initial={{ opacity: 0, y: 70 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: "easeOut" }}
           className="hero-title mb-8"
         >
-          Crafting <br /> Visual Experience
+          Shop Cinematic <br /> Visual Essentials
         </motion.h1>
 
+        {/* Description */}
         <motion.p
           initial={{ opacity: 0, y: 80 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.8 }}
-          className="max-w-xl text-gray-400 text-sm md:text-base leading-relaxed mb-5"
+          className="mb-5 max-w-xl text-sm leading-relaxed text-gray-400 md:text-base"
         >
-          Photography, videography, and cinematic storytelling crafted with
-          precision, emotion, and creativity.
+          Discover premium presets, visual products, and creative services
+          designed for creators, brands, and storytellers.
         </motion.p>
 
+        {/* Trust Signal */}
         <motion.p
           initial={{ opacity: 0, y: 80 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.8 }}
-          className="mb-10 text-[10px] tracking-[0.3em] text-gray-500 uppercase"
+          className="mb-10 text-[10px] uppercase tracking-[0.3em] text-gray-500"
         >
-          Based in Indonesia • Available Worldwide
+          Instant Access • Premium Quality • Made in Indonesia
         </motion.p>
 
+        {/* CTA Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 90 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.8 }}
+          className="flex flex-col items-center gap-5 sm:flex-row"
         >
-          <div onClick={scrollToProjects} className="group">
+          <div onClick={scrollToShop} className="group cursor-pointer">
             <MagneticButton>
-              <span className="group-hover:tracking-widest transition-all duration-300">
-                Explore Work
+              <span className="transition-all duration-300 group-hover:tracking-widest">
+                Shop Collection
               </span>
             </MagneticButton>
           </div>
+
+          <button
+            onClick={scrollToProducts}
+            className="text-sm text-gray-300 underline underline-offset-8 transition-colors duration-300 hover:text-white"
+          >
+            View Featured Products
+          </button>
         </motion.div>
       </div>
 
-      {/* Scroll Indicator */}
+      {/* Bottom Commerce Notes */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: [10, 0, 10] }}
-        transition={{ delay: 1.1, duration: 2, repeat: Infinity }}
-        className="absolute bottom-10 left-1/2 z-10 -translate-x-1/2 text-[10px] md:text-xs text-gray-400 tracking-[0.4em]"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9, duration: 0.8 }}
+        className="absolute bottom-8 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-6 text-[10px] uppercase tracking-[0.3em] text-gray-500 md:flex"
       >
+        <span>Digital Products</span>
+        <span className="h-1 w-1 rounded-full bg-gray-600" />
+        <span>Creative Assets</span>
+        <span className="h-1 w-1 rounded-full bg-gray-600" />
+        <span>Worldwide Access</span>
       </motion.div>
     </section>
   );

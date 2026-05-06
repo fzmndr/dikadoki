@@ -5,6 +5,7 @@ import About from "../sections/About";
 import FAQ from "../sections/FAQ";
 import Contact from "../sections/Contact";
 import PageMeta from "../components/PageMeta";
+import FeaturedProducts from "../sections/FeaturedProducts";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
 
       <main>
         <Hero />
+        <FeaturedProducts />
         <ProjectsSection />
         <ServicesSection />
         <About />
