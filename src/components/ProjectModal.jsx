@@ -6,7 +6,7 @@ export default function ProjectModal({ project, onClose }) {
       {project && (
         <motion.div
           onClick={onClose}
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/85 backdrop-blur-xl px-4"
+          className="fixed inset-0 z- flex items-center justify-center bg-black/85 backdrop-blur-xl px-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -29,13 +29,24 @@ export default function ProjectModal({ project, onClose }) {
             transition={{ duration: 0.45, ease: [0.76, 0, 0.24, 1] }}
             className="relative w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-[#050505] shadow-2xl"
           >
-            {/* IMAGE */}
-            <div className="relative h-[360px] md:h-[520px] overflow-hidden">
-              <img
-                src={project.image}
-                alt={project.title}
-                className="h-full w-full object-cover"
-              />
+            {/* MEDIA (IMAGE OR VIDEO) */}
+            <div className="relative h-[360px] md:h-[520px] overflow-hidden bg-black">
+              {project.isVideo ? (
+                <video
+                  src={project.visualUrl}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <img
+                  src={project.visualUrl}
+                  alt={project.name}
+                  className="h-full w-full object-cover"
+                />
+              )}
 
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
@@ -52,7 +63,7 @@ export default function ProjectModal({ project, onClose }) {
                 </p>
 
                 <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                  {project.title}
+                  {project.name} {/* Menggunakan .name dari database */}
                 </h2>
               </div>
 
@@ -63,7 +74,7 @@ export default function ProjectModal({ project, onClose }) {
 
                 <button
                   onClick={onClose}
-                  className="mt-8 w-fit rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.25em] text-white hover:bg-white hover:text-black"
+                  className="mt-8 w-fit rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.25em] text-white hover:bg-white hover:text-black transition-colors"
                 >
                   Close
                 </button>
