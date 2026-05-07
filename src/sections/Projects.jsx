@@ -12,9 +12,15 @@ export default function Projects() {
       const { data, error } = await supabase
         .from("products") 
         .select("*")
-        .eq("category", "Portfolio"); // Pastikan di Supabase kolom category isinya "Portfolio"
+        // Pastikan koma dan tanda kutipnya benar: .eq("nama_kolom", "isi_filter")
+        .eq("category", "Portfolio"); 
       
-      if (!error && data) {
+      if (error) {
+        console.error("Detail Error Supabase:", error.message);
+        return;
+      }
+      
+      if (data) {
         setDbProjects(data);
       }
     };
