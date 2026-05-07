@@ -14,7 +14,7 @@ export default function ProjectModal({ project, onClose }) {
           {/* CLOSE BUTTON */}
           <button
             onClick={onClose}
-            className="absolute right-6 top-6 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-md hover:bg-white hover:text-black"
+            className="absolute right-6 top-6 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/5 text-white backdrop-blur-md hover:bg-white hover:text-black transition-all"
             aria-label="Close modal"
           >
             ✕
@@ -31,7 +31,8 @@ export default function ProjectModal({ project, onClose }) {
           >
             {/* MEDIA (IMAGE OR VIDEO) */}
             <div className="relative h-[360px] md:h-[520px] overflow-hidden bg-black">
-              {project.isVideo ? (
+              {/* Cek apakah file_path di database berakhiran .mp4 */}
+              {project.file_path?.toLowerCase().endsWith(".mp4") || project.isVideo ? (
                 <video
                   src={project.visualUrl}
                   autoPlay
@@ -55,7 +56,7 @@ export default function ProjectModal({ project, onClose }) {
               </div>
             </div>
 
-            {/* CONTENT */}
+            {/* CONTENT SECTION */}
             <div className="grid gap-8 p-6 md:grid-cols-[1.2fr_0.8fr] md:p-10">
               <div>
                 <p className="mb-4 text-xs uppercase tracking-[0.4em] text-gray-500">
@@ -63,18 +64,18 @@ export default function ProjectModal({ project, onClose }) {
                 </p>
 
                 <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                  {project.name} {/* Menggunakan .name dari database */}
+                  {project.name}
                 </h2>
               </div>
 
               <div className="flex flex-col justify-end">
                 <p className="text-sm leading-relaxed text-gray-400 md:text-base">
-                  {project.description}
+                  {project.description || "No description available for this cinematic piece."}
                 </p>
 
                 <button
                   onClick={onClose}
-                  className="mt-8 w-fit rounded-full border border-white/20 px-6 py-3 text-xs uppercase tracking-[0.25em] text-white hover:bg-white hover:text-black transition-colors"
+                  className="mt-8 w-fit rounded-full border border-white/20 px-8 py-3 text-xs uppercase tracking-[0.25em] text-white hover:bg-white hover:text-black transition-all duration-300"
                 >
                   Close
                 </button>
