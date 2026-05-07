@@ -22,10 +22,19 @@ export default function Projects() {
   }, []);
 
   const getVisualUrl = (path) => {
-    if (!path) return "";
-    const { data } = supabase.storage.from("digital-assets").getPublicUrl(path);
-    return data.publicUrl;
-  };
+  // 1. Cek jika path kosong atau null agar tidak kirim request rusak ke server
+  if (!path) return "";
+
+  // 2. Bersihkan path dari spasi yang tidak sengaja terketik di database
+  const cleanPath = path.trim();
+
+  // 3. Ambil URL Publik
+  const { data } = supabase.storage
+    .from("digital-assets")
+    .getPublicUrl(cleanPath);
+
+  return data?.publicUrl || "";
+};
 
   return (
     <section id="projects" className="section container-custom">
