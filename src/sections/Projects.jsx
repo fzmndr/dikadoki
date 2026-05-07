@@ -9,11 +9,11 @@ export default function Projects() {
 
   useEffect(() => {
     const fetchProjects = async () => {
+      // Mengambil data dari tabel 'portfolio'
       const { data, error } = await supabase
-        .from("products") 
+        .from("portfolio") 
         .select("*")
-        // Pastikan koma dan tanda kutipnya benar: .eq("nama_kolom", "isi_filter")
-        .eq("category", "Portfolio"); 
+        .order('id', { ascending: true }); // Mengurutkan berdasarkan ID agar urutannya konsisten
       
       if (error) {
         console.error("Detail Error Supabase:", error.message);
@@ -28,23 +28,18 @@ export default function Projects() {
   }, []);
 
   const getVisualUrl = (path) => {
-  // 1. Cek jika path kosong atau null agar tidak kirim request rusak ke server
-  if (!path) return "";
+    if (!path) return "";
+    const cleanPath = path.trim();
+    const { data } = supabase.storage
+      .from("digital-assets") // Pastikan nama bucket di Storage kamu adalah 'digital-assets'
+      .getPublicUrl(cleanPath);
 
-  // 2. Bersihkan path dari spasi yang tidak sengaja terketik di database
-  const cleanPath = path.trim();
-
-  // 3. Ambil URL Publik
-  const { data } = supabase.storage
-    .from("digital-assets")
-    .getPublicUrl(cleanPath);
-
-  return data?.publicUrl || "";
-};
+    return data?.publicUrl || "";
+  };
 
   return (
     <section id="projects" className="section container-custom">
-      {/* HEADER: Ini yang bikin teks Selected Work muncul lagi di tempatnya */}
+      {/* HEADER: Layout asli Selected Work */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-16">
         <div>
           <p className="text-xs tracking-[0.4em] text-gray-500 uppercase mb-4">
@@ -61,7 +56,7 @@ export default function Projects() {
         </p>
       </div>
 
-      {/* GRID: Tempat 3 kartu (atau lebih) muncul */}
+      {/* GRID: Tempat kartu video/gambar muncul */}
       <div className="grid md:grid-cols-3 gap-6">
         {dbProjects.map((item, index) => {
           const visualUrl = getVisualUrl(item.file_path);
@@ -70,12 +65,13 @@ export default function Projects() {
           return (
             <motion.div
               key={item.id}
-              onClick={() => setSelected({ ...item, visualUrl, isVideo })}
+              // name: item.title digunakan agar modal bisa membaca judulnya dengan benar
+              onClick={() => setSelected({ ...item, name: item.title, visualUrl, isVideo })}
               initial={{ opacity: 0, y: 80 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.15, duration: 0.8 }}
               viewport={{ once: true }}
-              className="project-card group cursor-pointer relative h-[480px] overflow-hidden rounded-2xl"
+              className="project-card group cursor-pointer relative h-[480px] overflow-hidden rounded-2xl bg-neutral-900"
             >
               {/* Media Handling */}
               {isVideo ? (
@@ -87,26 +83,30 @@ export default function Projects() {
               ) : (
                 <img 
                   src={visualUrl} 
-                  alt={item.name} 
+                  alt={item.title} 
                   className="absolute inset-0 w-full h-full object-cover transition duration-700 group-hover:scale-110" 
                 />
               )}
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+              {/* Overlay Gelap agar teks terbaca */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
 
-              <div className="absolute top-6 left-6 text-xs tracking-[0.3em] text-gray-300 uppercase">
+              {/* Nomor Urut */}
+              <div className="absolute top-6 left-6 text-xs tracking-[0.3em] text-gray-400 uppercase">
                 0{index + 1}
               </div>
 
+              {/* Teks Informasi */}
               <div className="absolute bottom-6 left-6 right-6">
-                <p className="text-xs tracking-[0.3em] text-gray-400 uppercase mb-3">
+                <p className="text-[10px] tracking-[0.3em] text-gray-400 uppercase mb-3">
                   {item.category}
                 </p>
 
-                <h3 className="text-2xl font-semibold tracking-tight">
-                  {item.name}
+                <h3 className="text-2xl font-medium tracking-tight text-white">
+                  {item.title}
                 </h3>
 
+                {/* Deskripsi muncul saat hover */}
                 <p className="text-sm text-gray-400 mt-3 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition duration-500 line-clamp-2">
                   {item.description}
                 </p>
@@ -116,6 +116,7 @@ export default function Projects() {
         })}
       </div>
 
+      {/* Modal untuk detail project */}
       <ProjectModal project={selected} onClose={() => setSelected(null)} />
     </section>
   );
