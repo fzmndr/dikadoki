@@ -1,78 +1,123 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase"; // Import koneksi supabase kamu
+import { useEffect, useMemo, useState } from "react";
 
 import ProductCard from "../components/ProductCard";
 import CartDrawer from "../components/CartDrawer";
 import Toast from "../components/Toast";
-// import { products } from "../data/products"; // Kita matikan data statis ini
 import PageMeta from "../components/PageMeta";
+
+import { supabase } from "../lib/supabase";
 
 export default function Shop() {
   const [toast, setToast] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("default");
 
-  // --- STATE BARU UNTUK SUPABASE ---
-  const [dbProducts, setDbProducts] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [shopError, setShopError] = useState("");
 
   useEffect(() => {
-    // 1. Ambil data keranjang dari LocalStorage
     const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
     setCartItems(savedCart);
-
-    // 2. AMBIL DATA DARI SUPABASE
-    const fetchProducts = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("products") // Nama tabel di supabase kamu
-        .select("*");
-
-      if (!error && data) {
-        setDbProducts(data);
-      }
-      setLoading(false);
-    };
 
     fetchProducts();
   }, []);
 
-  // Kita gunakan dbProducts sebagai sumber data
-  const categories = [
-    "All",
-    ...new Set(dbProducts.map((product) => product.category)),
-  ];
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setShopError("");
 
-  const filteredProducts = dbProducts
-    .filter((product) => {
-      const matchesCategory =
-        activeCategory === "All" || product.category === activeCategory;
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
 
-      const keyword = searchTerm.trim().toLowerCase();
+      if (error) {
+        throw error;
+      }
 
-      const matchesSearch =
-        product.name.toLowerCase().includes(keyword) ||
-        (product.category && product.category.toLowerCase().includes(keyword)) ||
-        (product.description && product.description.toLowerCase().includes(keyword));
-
-      return matchesCategory && matchesSearch;
-    })
-    .sort((a, b) => {
-      if (sortBy === "lowest") return a.price - b.price;
-      if (sortBy === "highest") return b.price - b.price;
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      return 0;
-    });
-
-  // --- FUNGSI HELPER UNTUK GAMBAR SUPABASE ---
-  const getProductImage = (path) => {
-    if (!path) return "/placeholder-image.jpg"; // Fallback jika tidak ada path
-    const { data } = supabase.storage.from("digital-assets").getPublicUrl(path);
-    return data.publicUrl;
+      setProducts(data || []);
+    } catch (error) {
+      console.error("Fetch products error:", error);
+      setShopError("Gagal memuat produk. Coba refresh halaman.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const getProductImage = (product) => {
+    if (product.image_url) {
+      return product.image_url;
+    }
+
+    if (product.image) {
+      return product.image;
+    }
+
+    if (product.file_path_thumbnail) {
+      const { data } = supabase.storage
+        .from("digital-assets")
+        .getPublicUrl(product.file_path_thumbnail);
+
+      return data.publicUrl;
+    }
+
+    if (product.thumbnail_path) {
+      const { data } = supabase.storage
+        .from("digital-assets")
+        .getPublicUrl(product.thumbnail_path);
+
+      return data.publicUrl;
+    }
+
+    return "/images/placeholder.jpg";
+  };
+
+  const categories = useMemo(() => {
+    const categoryList = products
+      .map((product) => product.category || "Digital Product")
+      .filter(Boolean);
+
+    return ["All", ...new Set(categoryList)];
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const keyword = searchTerm.trim().toLowerCase();
+
+    return products
+      .filter((product) => {
+        const category = product.category || "Digital Product";
+
+        const matchesCategory =
+          activeCategory === "All" || category === activeCategory;
+
+        const matchesSearch =
+          !keyword ||
+          product.name?.toLowerCase().includes(keyword) ||
+          product.description?.toLowerCase().includes(keyword) ||
+          category.toLowerCase().includes(keyword);
+
+        return matchesCategory && matchesSearch;
+      })
+      .sort((a, b) => {
+        const priceA = Number(a.price || 0);
+        const priceB = Number(b.price || 0);
+
+        if (sortBy === "lowest") return priceA - priceB;
+        if (sortBy === "highest") return priceB - priceA;
+        if (sortBy === "name") {
+          return String(a.name || "").localeCompare(String(b.name || ""));
+        }
+
+        return 0;
+      });
+  }, [products, activeCategory, searchTerm, sortBy]);
 
   const resetFilter = () => {
     setSearchTerm("");
@@ -81,35 +126,59 @@ export default function Shop() {
   };
 
   const addToCart = (product) => {
-    if (!product || product.stockStatus === "Sold Out") return;
+    if (!product) return;
 
-    // Pastikan kita mengirim URL gambar yang benar ke keranjang
-    const productWithImage = {
-      ...product,
-      image: getProductImage(product.file_path_thumbnail) // Sesuaikan nama kolom di DB
+    const isSoldOut =
+      product.stockStatus === "Sold Out" ||
+      product.stock_status === "Sold Out" ||
+      product.is_active === false;
+
+    if (isSoldOut) return;
+
+    const cartProduct = {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      category: product.category || "Digital Product",
+      description: product.description || "",
+      price: Number(product.price || 0),
+      compare_at_price: product.compare_at_price || null,
+      image: getProductImage(product),
+      file_path: product.file_path || null,
+      quantity: 1,
     };
 
     const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
-    const existingProduct = existingCart.find((item) => item.id === product.id);
+
+    const existingProduct = existingCart.find(
+      (item) => item.id === cartProduct.id
+    );
 
     let updatedCart;
+
     if (existingProduct) {
       updatedCart = existingCart.map((item) =>
-        item.id === product.id
-          ? { ...item, quantity: (item.quantity || 1) + 1 }
+        item.id === cartProduct.id
+          ? {
+              ...item,
+              quantity: Number(item.quantity || 1) + 1,
+            }
           : item
       );
     } else {
-      updatedCart = [...existingCart, { ...productWithImage, quantity: 1 }];
+      updatedCart = [...existingCart, cartProduct];
     }
 
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     window.dispatchEvent(new Event("cartUpdated"));
+
     setCartItems(updatedCart);
     setDrawerOpen(true);
     setToast(true);
 
-    setTimeout(() => setToast(false), 2500);
+    setTimeout(() => {
+      setToast(false);
+    }, 2500);
   };
 
   return (
@@ -122,11 +191,15 @@ export default function Shop() {
       <main className="shop-page">
         <section className="shop-hero">
           <p className="section-label">dikadoki</p>
+
           <h1>Shop Creative Products & Services</h1>
-          <p>Pilih produk digital atau paket dokumentasi cinematic untuk kebutuhan visual kamu.</p>
+
+          <p>
+            Pilih produk digital, preset, LUT, template, atau paket dokumentasi
+            cinematic untuk kebutuhan visual kamu.
+          </p>
         </section>
 
-        {/* ... (Bagian shop-tools tetap sama) ... */}
         <section className="shop-tools">
           <div className="shop-search">
             <input
@@ -136,6 +209,7 @@ export default function Shop() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
           <div className="shop-filter">
             {categories.map((category) => (
               <button
@@ -148,8 +222,10 @@ export default function Shop() {
               </button>
             ))}
           </div>
+
           <div className="shop-sort">
             <label htmlFor="sort-product">Sort by</label>
+
             <select
               id="sort-product"
               value={sortBy}
@@ -164,16 +240,33 @@ export default function Shop() {
         </section>
 
         {loading ? (
-          <div className="text-center p-20">Memuat produk cinematic...</div>
+          <section className="shop-empty-result">
+            <h2>Memuat produk...</h2>
+            <p>Mohon tunggu sebentar.</p>
+          </section>
+        ) : shopError ? (
+          <section className="shop-empty-result">
+            <h2>Terjadi Kesalahan</h2>
+            <p>{shopError}</p>
+
+            <button type="button" onClick={fetchProducts}>
+              Coba Lagi
+            </button>
+          </section>
         ) : filteredProducts.length > 0 ? (
           <section className="shop-grid">
             {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}
-                // Kita kirim URL gambar hasil dari Supabase Storage ke ProductCard
                 product={{
                   ...product,
-                  image: getProductImage(product.file_path_thumbnail) 
+                  image: getProductImage(product),
+                  category: product.category || "Digital Product",
+                  badge: product.badge || (product.is_sale ? "SALE" : null),
+                  stockStatus:
+                    product.stock_status ||
+                    product.stockStatus ||
+                    (product.is_active === false ? "Sold Out" : "Available"),
                 }}
                 onAddToCart={addToCart}
               />
@@ -182,12 +275,25 @@ export default function Shop() {
         ) : (
           <section className="shop-empty-result">
             <h2>Produk tidak ditemukan</h2>
-            <button type="button" onClick={resetFilter}>Reset Filter</button>
+            <p>Coba gunakan kata kunci lain atau reset filter.</p>
+
+            <button type="button" onClick={resetFilter}>
+              Reset Filter
+            </button>
           </section>
         )}
 
-        <Toast show={toast} title="Added to Cart" message="Produk berhasil ditambahkan." />
-        <CartDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} cartItems={cartItems} />
+        <Toast
+          show={toast}
+          title="Added to Cart"
+          message="Produk berhasil ditambahkan."
+        />
+
+        <CartDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          cartItems={cartItems}
+        />
       </main>
     </>
   );

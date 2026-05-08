@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { products } from "../data/products";
 import Toast from "../components/Toast";
 import CartDrawer from "../components/CartDrawer";
 import ProductCard from "../components/ProductCard";
 import PageMeta from "../components/PageMeta";
+
+import { supabase } from "../lib/supabase";
 import { formatRupiah } from "../utils/formatCurrency";
 
 export default function ProductDetail() {
@@ -16,8 +17,16 @@ export default function ProductDetail() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
 
-  const product = products.find((item) => item.slug === slug);
-  const isSoldOut = product?.stockStatus === "Sold Out";
+  const [product, setProduct] = useState(null);
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
+  const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [detailError, setDetailError] = useState("");
+
+  const isSoldOut =
+    product?.stockStatus === "Sold Out" ||
+    product?.stock_status === "Sold Out" ||
+    product?.is_active === false;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -33,42 +42,119 @@ export default function ProductDetail() {
     }
   }, []);
 
-  if (!product) {
+  useEffect(() => {
+    async function fetchProductDetail() {
+      try {
+        setLoading(true);
+        setDetailError("");
+        setProduct(null);
+        setRecommendedProducts([]);
+
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .eq("slug", slug)
+          .eq("is_active", true)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setProduct(data);
+
+        const { data: relatedData, error: relatedError } = await supabase
+          .from("products")
+          .select("*")
+          .eq("is_active", true)
+          .eq("category", data.category || "Digital Product")
+          .neq("id", data.id)
+          .limit(3);
+
+        if (!relatedError && relatedData?.length > 0) {
+          setRecommendedProducts(relatedData);
+        } else {
+          const { data: fallbackData } = await supabase
+            .from("products")
+            .select("*")
+            .eq("is_active", true)
+            .neq("id", data.id)
+            .limit(3);
+
+          setRecommendedProducts(fallbackData || []);
+        }
+      } catch (error) {
+        console.error("Fetch product detail error:", error);
+        setDetailError("Produk yang kamu cari tidak ditemukan.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (slug) {
+      fetchProductDetail();
+    }
+  }, [slug]);
+
+  const getProductImage = (item) => {
+    if (!item) return "/images/placeholder.jpg";
+
+    if (item.image_url) return item.image_url;
+    if (item.image) return item.image;
+
+    if (item.file_path_thumbnail) {
+      const { data } = supabase.storage
+        .from("digital-assets")
+        .getPublicUrl(item.file_path_thumbnail);
+
+      return data.publicUrl;
+    }
+
+    if (item.thumbnail_path) {
+      const { data } = supabase.storage
+        .from("digital-assets")
+        .getPublicUrl(item.thumbnail_path);
+
+      return data.publicUrl;
+    }
+
+    return "/images/placeholder.jpg";
+  };
+
+  const hasDiscount = useMemo(() => {
+    if (!product) return false;
+
     return (
-      <>
-        <PageMeta
-          title="Product Not Found"
-          description="Produk yang kamu cari tidak ditemukan."
-        />
-
-        <main className="product-detail-page">
-          <section className="cart-empty-box">
-            <h2>Product not found</h2>
-            <p>Produk yang kamu cari tidak ditemukan.</p>
-
-            <Link to="/shop" className="cart-shop-btn">
-              Back to Shop
-            </Link>
-          </section>
-        </main>
-      </>
+      product.compare_at_price &&
+      Number(product.compare_at_price) > Number(product.price)
     );
-  }
+  }, [product]);
 
-  const recommendedProducts = products
-    .filter(
-      (item) => item.id !== product.id && item.category === product.category
-    )
-    .slice(0, 3);
+  const discountPercent = useMemo(() => {
+    if (!hasDiscount || !product) return 0;
 
-  const fallbackRecommendedProducts = products
-    .filter((item) => item.id !== product.id)
-    .slice(0, 3);
+    const price = Number(product.price || 0);
+    const compareAtPrice = Number(product.compare_at_price || 0);
 
-  const finalRecommendedProducts =
-    recommendedProducts.length > 0
-      ? recommendedProducts
-      : fallbackRecommendedProducts;
+    if (!compareAtPrice) return 0;
+
+    return Math.round(((compareAtPrice - price) / compareAtPrice) * 100);
+  }, [hasDiscount, product]);
+
+  const normalizeCartProduct = (selectedProduct, selectedQuantity = 1) => {
+    return {
+      id: selectedProduct.id,
+      name: selectedProduct.name,
+      slug: selectedProduct.slug,
+      category: selectedProduct.category || "Digital Product",
+      description: selectedProduct.description || "",
+      price: Number(selectedProduct.price || 0),
+      compare_at_price: selectedProduct.compare_at_price || null,
+      image: getProductImage(selectedProduct),
+      file_path: selectedProduct.file_path || null,
+      quantity: selectedQuantity,
+    };
+  };
 
   const getExistingCart = () => {
     try {
@@ -79,22 +165,26 @@ export default function ProductDetail() {
     }
   };
 
-  const createUpdatedCart = (selectedProduct) => {
+  const createUpdatedCart = (selectedProduct, selectedQuantity = 1) => {
+    const cartProduct = normalizeCartProduct(selectedProduct, selectedQuantity);
     const existingCart = getExistingCart();
 
     const existingProduct = existingCart.find(
-      (item) => item.id === selectedProduct.id
+      (item) => item.id === cartProduct.id
     );
 
     if (existingProduct) {
       return existingCart.map((item) =>
-        item.id === selectedProduct.id
-          ? { ...item, quantity: (item.quantity || 1) + 1 }
+        item.id === cartProduct.id
+          ? {
+              ...item,
+              quantity: Number(item.quantity || 1) + selectedQuantity,
+            }
           : item
       );
     }
 
-    return [...existingCart, { ...selectedProduct, quantity: 1 }];
+    return [...existingCart, cartProduct];
   };
 
   const saveCart = (updatedCart) => {
@@ -103,10 +193,15 @@ export default function ProductDetail() {
     setCartItems(updatedCart);
   };
 
-  const addToCart = (selectedProduct = product) => {
-    if (!selectedProduct || selectedProduct.stockStatus === "Sold Out") return;
+  const addToCart = (selectedProduct = product, selectedQuantity = quantity) => {
+    const productIsSoldOut =
+      selectedProduct?.stockStatus === "Sold Out" ||
+      selectedProduct?.stock_status === "Sold Out" ||
+      selectedProduct?.is_active === false;
 
-    const updatedCart = createUpdatedCart(selectedProduct);
+    if (!selectedProduct || productIsSoldOut) return;
+
+    const updatedCart = createUpdatedCart(selectedProduct, selectedQuantity);
 
     saveCart(updatedCart);
     setDrawerOpen(true);
@@ -118,13 +213,50 @@ export default function ProductDetail() {
   };
 
   const buyNow = () => {
-    if (!product || product.stockStatus === "Sold Out") return;
+    if (!product || isSoldOut) return;
 
-    const updatedCart = createUpdatedCart(product);
+    const updatedCart = createUpdatedCart(product, quantity);
 
     saveCart(updatedCart);
     navigate("/cart");
   };
+
+  if (loading) {
+    return (
+      <>
+        <PageMeta title="Loading Product" description="Memuat detail produk." />
+
+        <main className="product-detail-page">
+          <section className="cart-empty-box">
+            <h2>Loading product...</h2>
+            <p>Mohon tunggu sebentar.</p>
+          </section>
+        </main>
+      </>
+    );
+  }
+
+  if (detailError || !product) {
+    return (
+      <>
+        <PageMeta
+          title="Product Not Found"
+          description="Produk yang kamu cari tidak ditemukan."
+        />
+
+        <main className="product-detail-page">
+          <section className="cart-empty-box">
+            <h2>Product not found</h2>
+            <p>{detailError || "Produk yang kamu cari tidak ditemukan."}</p>
+
+            <Link to="/shop" className="cart-shop-btn">
+              Back to Shop
+            </Link>
+          </section>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -133,43 +265,94 @@ export default function ProductDetail() {
       <main className="product-detail-page">
         <section className="product-detail-wrapper">
           <div className="product-detail-image">
-            <img src={product.image} alt={product.name} />
+            <img src={getProductImage(product)} alt={product.name} />
 
-            {product.badge && (
-              <span className="product-badge">{product.badge}</span>
+            {(product.badge || product.is_sale) && (
+              <span className="product-badge">
+                {product.badge || "SALE"}
+              </span>
             )}
           </div>
 
           <div className="product-detail-content">
             <div className="product-detail-meta">
-              <span>{product.category}</span>
+              <span>{product.category || "Digital Product"}</span>
 
-              {product.badge && <strong>{product.badge}</strong>}
-
-              {product.stockStatus && (
-                <strong
-                  className={
-                    isSoldOut ? "detail-stock sold-out" : "detail-stock"
-                  }
-                >
-                  {product.stockStatus}
-                </strong>
+              {(product.badge || product.is_sale) && (
+                <strong>{product.badge || "SALE"}</strong>
               )}
+
+              <strong
+                className={isSoldOut ? "detail-stock sold-out" : "detail-stock"}
+              >
+                {isSoldOut ? "Sold Out" : "Available"}
+              </strong>
             </div>
 
             <h1>{product.name}</h1>
 
-            <p>{product.description}</p>
+            <p>
+              {product.description ||
+                "Produk digital siap pakai untuk kebutuhan kreatif kamu."}
+            </p>
 
-            <strong className="product-detail-price">
-              {product.pricePrefix && <small>{product.pricePrefix}</small>}
-              {formatRupiah(product.price)}
-            </strong>
+            <div className="product-detail-price-wrap">
+              <strong className="product-detail-price">
+                {product.pricePrefix && <small>{product.pricePrefix}</small>}
+                {formatRupiah(product.price || 0)}
+              </strong>
+
+              {hasDiscount && (
+                <>
+                  <span className="product-detail-compare-price">
+                    {formatRupiah(product.compare_at_price)}
+                  </span>
+
+                  <em className="product-detail-discount">
+                    Save {discountPercent}%
+                  </em>
+                </>
+              )}
+            </div>
+
+            <div className="product-whats-inside">
+              <h3>What's inside:</h3>
+
+              <ul>
+                <li>File digital siap download</li>
+                <li>Akses setelah pembayaran berhasil</li>
+                <li>Pembayaran aman via QRIS / Midtrans</li>
+              </ul>
+            </div>
+
+            <div className="product-quantity">
+              <span>Quantity</span>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                  disabled={isSoldOut}
+                >
+                  -
+                </button>
+
+                <strong>{quantity}</strong>
+
+                <button
+                  type="button"
+                  onClick={() => setQuantity((value) => value + 1)}
+                  disabled={isSoldOut}
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
             <div className="product-detail-actions">
               <button
                 type="button"
-                onClick={() => addToCart(product)}
+                onClick={() => addToCart(product, quantity)}
                 className="product-detail-btn"
                 disabled={isSoldOut}
               >
@@ -192,22 +375,33 @@ export default function ProductDetail() {
           </div>
         </section>
 
-        <section className="related-products">
-          <div className="related-products-header">
-            <p className="section-label">Recommended</p>
-            <h2>You May Also Like</h2>
-          </div>
+        {recommendedProducts.length > 0 && (
+          <section className="related-products">
+            <div className="related-products-header">
+              <p className="section-label">Recommended</p>
+              <h2>You May Also Like</h2>
+            </div>
 
-          <div className="shop-grid">
-            {finalRecommendedProducts.map((item) => (
-              <ProductCard
-                key={item.id}
-                product={item}
-                onAddToCart={addToCart}
-              />
-            ))}
-          </div>
-        </section>
+            <div className="shop-grid">
+              {recommendedProducts.map((item) => (
+                <ProductCard
+                  key={item.id}
+                  product={{
+                    ...item,
+                    image: getProductImage(item),
+                    category: item.category || "Digital Product",
+                    badge: item.badge || (item.is_sale ? "SALE" : null),
+                    stockStatus:
+                      item.stock_status ||
+                      item.stockStatus ||
+                      (item.is_active === false ? "Sold Out" : "Available"),
+                  }}
+                  onAddToCart={(selectedProduct) => addToCart(selectedProduct, 1)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         <Toast
           show={toast}

@@ -2,59 +2,98 @@ import { Link } from "react-router-dom";
 import { formatRupiah } from "../utils/formatCurrency";
 
 export default function ProductCard({ product, onAddToCart }) {
-  const isSoldOut = product.stockStatus === "Sold Out";
+  const isSoldOut =
+    product.stockStatus === "Sold Out" ||
+    product.stock_status === "Sold Out" ||
+    product.is_active === false;
+
+  const slug = product.slug || product.id;
+
+  const productUrl = `/shop/${slug}`;
+
+  const imageUrl =
+    product.image ||
+    product.image_url ||
+    product.thumbnail_url ||
+    "/images/placeholder.jpg";
+
+  const category = product.category || "Digital Product";
+
+  const badge =
+    product.badge ||
+    (product.is_sale ? "SALE" : null);
+
+  const hasDiscount =
+    product.compare_at_price &&
+    Number(product.compare_at_price) > Number(product.price);
 
   const handleAddToCart = (e) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (isSoldOut) return;
-    onAddToCart(product);
+
+    const cartProduct = {
+      id: product.id,
+      name: product.name,
+      slug,
+      category,
+      description: product.description,
+      price: Number(product.price || 0),
+      compare_at_price: product.compare_at_price || null,
+      image: imageUrl,
+      file_path: product.file_path || null,
+      quantity: 1,
+    };
+
+    onAddToCart?.(cartProduct);
   };
 
   return (
     <article className={`product-card ${isSoldOut ? "is-sold-out" : ""}`}>
       <Link
-        to={`/shop/${product.slug}`}
+        to={productUrl}
         className="product-image"
         aria-label={`View detail ${product.name}`}
       >
-        <img src={product.image} alt={product.name} />
+        <img src={imageUrl} alt={product.name || "Product"} loading="lazy" />
 
-        {product.badge && (
-          <span className="product-badge">{product.badge}</span>
-        )}
+        {badge && <span className="product-badge">{badge}</span>}
+
+        {isSoldOut && <span className="product-badge sold">SOLD OUT</span>}
       </Link>
 
       <div className="product-info">
         <div className="product-meta-row">
-          <span>{product.category}</span>
+          <span>{category}</span>
 
-          {product.stockStatus && (
-            <strong
-              className={`stock-badge ${
-                isSoldOut ? "sold-out" : "available"
-              }`}
-            >
-              {product.stockStatus}
-            </strong>
-          )}
+          <strong
+            className={`stock-badge ${isSoldOut ? "sold-out" : "available"}`}
+          >
+            {isSoldOut ? "Sold Out" : "Available"}
+          </strong>
         </div>
 
-        <Link to={`/shop/${product.slug}`} className="product-title-link">
+        <Link to={productUrl} className="product-title-link">
           <h3>{product.name}</h3>
         </Link>
 
-        <p>{product.description}</p>
+        {product.description && <p>{product.description}</p>}
 
         <div className="product-bottom">
-          <strong>
-            {product.pricePrefix && <small>{product.pricePrefix}</small>}
-            {formatRupiah(product.price)}
-          </strong>
+          <div className="product-card-price">
+            <strong>
+              {product.pricePrefix && <small>{product.pricePrefix}</small>}
+              {formatRupiah(product.price || 0)}
+            </strong>
+
+            {hasDiscount && (
+              <span>{formatRupiah(product.compare_at_price)}</span>
+            )}
+          </div>
 
           <div className="product-actions">
-            <Link to={`/shop/${product.slug}`} className="product-btn secondary">
+            <Link to={productUrl} className="product-btn secondary">
               Detail
             </Link>
 
