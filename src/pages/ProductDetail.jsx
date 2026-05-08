@@ -9,6 +9,9 @@ import PageMeta from "../components/PageMeta";
 import { supabase } from "../lib/supabase";
 import { formatRupiah } from "../utils/formatCurrency";
 
+const STORAGE_BUCKET = "digital-assets";
+const PLACEHOLDER_IMAGE = "/images/placeholder.jpg";
+
 export default function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -23,6 +26,39 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] = useState("");
   const [loading, setLoading] = useState(true);
   const [detailError, setDetailError] = useState("");
+
+  const getStorageImageUrl = (path) => {
+    if (!path) return PLACEHOLDER_IMAGE;
+
+    if (path.startsWith("http") || path.startsWith("/")) {
+      return path;
+    }
+
+    const cleanPath = path.replace(/^\/+/, "");
+
+    const { data } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(cleanPath);
+
+    return data?.publicUrl || PLACEHOLDER_IMAGE;
+  };
+
+  const getProductImage = (item) => {
+    if (!item) return PLACEHOLDER_IMAGE;
+
+    if (item.image_url) return getStorageImageUrl(item.image_url);
+    if (item.image) return getStorageImageUrl(item.image);
+
+    if (item.file_path_thumbnail) {
+      return getStorageImageUrl(item.file_path_thumbnail);
+    }
+
+    if (item.thumbnail_path) {
+      return getStorageImageUrl(item.thumbnail_path);
+    }
+
+    return PLACEHOLDER_IMAGE;
+  };
 
   const isSoldOut =
     product?.stockStatus === "Sold Out" ||
@@ -51,6 +87,7 @@ export default function ProductDetail() {
         setProduct(null);
         setRecommendedProducts([]);
         setSelectedImage("");
+        setQuantity(1);
 
         const { data, error } = await supabase
           .from("products")
@@ -61,8 +98,10 @@ export default function ProductDetail() {
 
         if (error) throw error;
 
+        const mainImage = getProductImage(data);
+
         setProduct(data);
-        setSelectedImage(getProductImage(data));
+        setSelectedImage(mainImage);
 
         const { data: relatedData, error: relatedError } = await supabase
           .from("products")
@@ -74,14 +113,17 @@ export default function ProductDetail() {
 
         if (!relatedError && relatedData?.length > 0) {
           setRecommendedProducts(relatedData);
-        } else {
-          const { data: fallbackData } = await supabase
-            .from("products")
-            .select("*")
-            .eq("is_active", true)
-            .neq("id", data.id)
-            .limit(3);
+          return;
+        }
 
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("products")
+          .select("*")
+          .eq("is_active", true)
+          .neq("id", data.id)
+          .limit(3);
+
+        if (!fallbackError) {
           setRecommendedProducts(fallbackData || []);
         }
       } catch (error) {
@@ -97,38 +139,16 @@ export default function ProductDetail() {
     }
   }, [slug]);
 
-  const getProductImage = (item) => {
-    if (!item) return "/images/placeholder.jpg";
-
-    if (item.image_url) return item.image_url;
-    if (item.image) return item.image;
-
-    if (item.file_path_thumbnail) {
-      const { data } = supabase.storage
-        .from("digital-assets")
-        .getPublicUrl(item.file_path_thumbnail);
-
-      return data.publicUrl;
-    }
-
-    if (item.thumbnail_path) {
-      const { data } = supabase.storage
-        .from("digital-assets")
-        .getPublicUrl(item.thumbnail_path);
-
-      return data.publicUrl;
-    }
-
-    return "/images/placeholder.jpg";
-  };
-
   const productGallery = useMemo(() => {
     if (!product) return [];
 
-    const gallery = Array.isArray(product.gallery) ? product.gallery : [];
     const mainImage = getProductImage(product);
 
-    return [mainImage, ...gallery].filter(Boolean);
+    const gallery = Array.isArray(product.gallery)
+      ? product.gallery.map(getStorageImageUrl)
+      : [];
+
+    return [...new Set([mainImage, ...gallery].filter(Boolean))];
   }, [product]);
 
   const productBenefits = useMemo(() => {
@@ -177,6 +197,7 @@ export default function ProductDetail() {
       compare_at_price: selectedProduct.compare_at_price || null,
       image: getProductImage(selectedProduct),
       file_path: selectedProduct.file_path || null,
+      download_url: selectedProduct.download_url || null,
       quantity: selectedQuantity,
     };
   };
@@ -298,7 +319,14 @@ export default function ProductDetail() {
 
   return (
     <>
-      <PageMeta title={product.name} description={product.description} />
+      <PageMeta
+        title={product.name}
+        description={
+          product.short_description ||
+          product.description ||
+          "Detail produk digital dikadoki."
+        }
+      />
 
       <main className="product-detail-page">
         <section className="product-detail-wrapper">
@@ -307,6 +335,9 @@ export default function ProductDetail() {
               <img
                 src={selectedImage || getProductImage(product)}
                 alt={product.name}
+                onError={(event) => {
+                  event.currentTarget.src = PLACEHOLDER_IMAGE;
+                }}
               />
 
               {(product.badge || product.is_sale) && (
@@ -331,7 +362,13 @@ export default function ProductDetail() {
                     onClick={() => setSelectedImage(image)}
                     className={selectedImage === image ? "active" : ""}
                   >
-                    <img src={image} alt={product.name} />
+                    <img
+                      src={image}
+                      alt={product.name}
+                      onError={(event) => {
+                        event.currentTarget.src = PLACEHOLDER_IMAGE;
+                      }}
+                    />
                   </button>
                 ))}
               </div>
