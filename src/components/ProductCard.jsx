@@ -8,7 +8,6 @@ export default function ProductCard({ product, onAddToCart }) {
     product.is_active === false;
 
   const slug = product.slug || product.id;
-
   const productUrl = `/shop/${slug}`;
 
   const imageUrl =
@@ -19,13 +18,19 @@ export default function ProductCard({ product, onAddToCart }) {
 
   const category = product.category || "Digital Product";
 
-  const badge =
-    product.badge ||
-    (product.is_sale ? "SALE" : null);
-
   const hasDiscount =
     product.compare_at_price &&
     Number(product.compare_at_price) > Number(product.price);
+
+  const discountPercent = hasDiscount
+    ? Math.round(
+        ((Number(product.compare_at_price) - Number(product.price)) /
+          Number(product.compare_at_price)) *
+          100
+      )
+    : 0;
+
+  const badge = product.badge || (product.is_sale ? "SALE" : null);
 
   const handleAddToCart = (e) => {
     e.preventDefault();
@@ -38,7 +43,7 @@ export default function ProductCard({ product, onAddToCart }) {
       name: product.name,
       slug,
       category,
-      description: product.description,
+      description: product.description || "",
       price: Number(product.price || 0),
       compare_at_price: product.compare_at_price || null,
       image: imageUrl,
@@ -60,7 +65,13 @@ export default function ProductCard({ product, onAddToCart }) {
 
         {badge && <span className="product-badge">{badge}</span>}
 
-        {isSoldOut && <span className="product-badge sold">SOLD OUT</span>}
+        {hasDiscount && (
+          <span className="product-discount-badge">
+            Save {discountPercent}%
+          </span>
+        )}
+
+        {isSoldOut && <span className="product-badge sold">Sold Out</span>}
       </Link>
 
       <div className="product-info">
@@ -78,7 +89,19 @@ export default function ProductCard({ product, onAddToCart }) {
           <h3>{product.name}</h3>
         </Link>
 
-        {product.description && <p>{product.description}</p>}
+        <p>
+          {product.short_description ||
+            product.description ||
+            "Produk digital siap pakai untuk kebutuhan kreatif kamu."}
+        </p>
+
+        <div className="product-card-rating">
+          ★★★★★
+          <span>
+            {Number(product.rating || 4.9).toFixed(1)}
+            {product.sold_count ? ` • ${product.sold_count} sold` : ""}
+          </span>
+        </div>
 
         <div className="product-bottom">
           <div className="product-card-price">

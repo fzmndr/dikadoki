@@ -20,6 +20,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [recommendedProducts, setRecommendedProducts] = useState([]);
   const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState("");
   const [loading, setLoading] = useState(true);
   const [detailError, setDetailError] = useState("");
 
@@ -49,6 +50,7 @@ export default function ProductDetail() {
         setDetailError("");
         setProduct(null);
         setRecommendedProducts([]);
+        setSelectedImage("");
 
         const { data, error } = await supabase
           .from("products")
@@ -57,11 +59,10 @@ export default function ProductDetail() {
           .eq("is_active", true)
           .single();
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
 
         setProduct(data);
+        setSelectedImage(getProductImage(data));
 
         const { data: relatedData, error: relatedError } = await supabase
           .from("products")
@@ -120,6 +121,30 @@ export default function ProductDetail() {
 
     return "/images/placeholder.jpg";
   };
+
+  const productGallery = useMemo(() => {
+    if (!product) return [];
+
+    const gallery = Array.isArray(product.gallery) ? product.gallery : [];
+    const mainImage = getProductImage(product);
+
+    return [mainImage, ...gallery].filter(Boolean);
+  }, [product]);
+
+  const productBenefits = useMemo(() => {
+    if (!product) return [];
+
+    if (Array.isArray(product.benefits) && product.benefits.length > 0) {
+      return product.benefits;
+    }
+
+    return [
+      "File digital siap download",
+      "Akses setelah pembayaran berhasil",
+      "Pembayaran aman via QRIS / Midtrans",
+      "Cocok untuk creator, editor, dan brand",
+    ];
+  }, [product]);
 
   const hasDiscount = useMemo(() => {
     if (!product) return false;
@@ -221,6 +246,19 @@ export default function ProductDetail() {
     navigate("/cart");
   };
 
+  const decorateProduct = (item) => {
+    return {
+      ...item,
+      image: getProductImage(item),
+      category: item.category || "Digital Product",
+      badge: item.badge || (item.is_sale ? "SALE" : null),
+      stockStatus:
+        item.stock_status ||
+        item.stockStatus ||
+        (item.is_active === false ? "Sold Out" : "Available"),
+    };
+  };
+
   if (loading) {
     return (
       <>
@@ -264,13 +302,39 @@ export default function ProductDetail() {
 
       <main className="product-detail-page">
         <section className="product-detail-wrapper">
-          <div className="product-detail-image">
-            <img src={getProductImage(product)} alt={product.name} />
+          <div className="product-detail-gallery">
+            <div className="product-detail-image">
+              <img
+                src={selectedImage || getProductImage(product)}
+                alt={product.name}
+              />
 
-            {(product.badge || product.is_sale) && (
-              <span className="product-badge">
-                {product.badge || "SALE"}
-              </span>
+              {(product.badge || product.is_sale) && (
+                <span className="product-badge">
+                  {product.badge || "SALE"}
+                </span>
+              )}
+
+              {hasDiscount && (
+                <span className="product-detail-floating-discount">
+                  Save {discountPercent}%
+                </span>
+              )}
+            </div>
+
+            {productGallery.length > 1 && (
+              <div className="product-gallery-thumbnails">
+                {productGallery.map((image) => (
+                  <button
+                    type="button"
+                    key={image}
+                    onClick={() => setSelectedImage(image)}
+                    className={selectedImage === image ? "active" : ""}
+                  >
+                    <img src={image} alt={product.name} />
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -291,8 +355,20 @@ export default function ProductDetail() {
 
             <h1>{product.name}</h1>
 
+            <div className="product-rating-large">
+              ★★★★★
+              <span>
+                {Number(product.rating || 4.9).toFixed(1)} rating
+                {product.review_count
+                  ? ` • ${product.review_count} reviews`
+                  : ""}
+                {product.sold_count ? ` • ${product.sold_count} sold` : ""}
+              </span>
+            </div>
+
             <p>
-              {product.description ||
+              {product.short_description ||
+                product.description ||
                 "Produk digital siap pakai untuk kebutuhan kreatif kamu."}
             </p>
 
@@ -319,9 +395,9 @@ export default function ProductDetail() {
               <h3>What's inside:</h3>
 
               <ul>
-                <li>File digital siap download</li>
-                <li>Akses setelah pembayaran berhasil</li>
-                <li>Pembayaran aman via QRIS / Midtrans</li>
+                {productBenefits.map((benefit) => (
+                  <li key={benefit}>{benefit}</li>
+                ))}
               </ul>
             </div>
 
@@ -372,6 +448,23 @@ export default function ProductDetail() {
                 Continue Shopping
               </Link>
             </div>
+
+            <div className="product-benefit-strip">
+              <div>
+                <strong>Instant Access</strong>
+                <span>Download setelah pembayaran berhasil.</span>
+              </div>
+
+              <div>
+                <strong>QRIS Payment</strong>
+                <span>Pembayaran aman via Midtrans.</span>
+              </div>
+
+              <div>
+                <strong>Digital Product</strong>
+                <span>Tanpa ongkir dan langsung siap dipakai.</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -386,17 +479,10 @@ export default function ProductDetail() {
               {recommendedProducts.map((item) => (
                 <ProductCard
                   key={item.id}
-                  product={{
-                    ...item,
-                    image: getProductImage(item),
-                    category: item.category || "Digital Product",
-                    badge: item.badge || (item.is_sale ? "SALE" : null),
-                    stockStatus:
-                      item.stock_status ||
-                      item.stockStatus ||
-                      (item.is_active === false ? "Sold Out" : "Available"),
-                  }}
-                  onAddToCart={(selectedProduct) => addToCart(selectedProduct, 1)}
+                  product={decorateProduct(item)}
+                  onAddToCart={(selectedProduct) =>
+                    addToCart(selectedProduct, 1)
+                  }
                 />
               ))}
             </div>

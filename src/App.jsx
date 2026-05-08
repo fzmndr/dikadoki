@@ -36,6 +36,7 @@ export default function App() {
         <Route path={routes.projects} element={<ProjectsPage />} />
         <Route path={routes.services} element={<ServicesPage />} />
         <Route path={routes.shop} element={<Shop />} />
+        <Route path={routes.productDetail} element={<ProductDetail />} />
         <Route path={`${routes.shop}/:slug`} element={<ProductDetail />} />
         <Route path={routes.cart} element={<Cart />} />
         <Route path={routes.orders} element={<Orders />} />

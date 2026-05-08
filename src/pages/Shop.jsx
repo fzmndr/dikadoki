@@ -38,9 +38,7 @@ export default function Shop() {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setProducts(data || []);
     } catch (error) {
@@ -52,13 +50,8 @@ export default function Shop() {
   };
 
   const getProductImage = (product) => {
-    if (product.image_url) {
-      return product.image_url;
-    }
-
-    if (product.image) {
-      return product.image;
-    }
+    if (product.image_url) return product.image_url;
+    if (product.image) return product.image;
 
     if (product.file_path_thumbnail) {
       const { data } = supabase.storage
@@ -87,6 +80,10 @@ export default function Shop() {
     return ["All", ...new Set(categoryList)];
   }, [products]);
 
+  const featuredProducts = useMemo(() => {
+    return products.filter((product) => product.is_featured).slice(0, 3);
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
 
@@ -101,6 +98,7 @@ export default function Shop() {
           !keyword ||
           product.name?.toLowerCase().includes(keyword) ||
           product.description?.toLowerCase().includes(keyword) ||
+          product.short_description?.toLowerCase().includes(keyword) ||
           category.toLowerCase().includes(keyword);
 
         return matchesCategory && matchesSearch;
@@ -181,6 +179,19 @@ export default function Shop() {
     }, 2500);
   };
 
+  const decorateProduct = (product) => {
+    return {
+      ...product,
+      image: getProductImage(product),
+      category: product.category || "Digital Product",
+      badge: product.badge || (product.is_sale ? "SALE" : null),
+      stockStatus:
+        product.stock_status ||
+        product.stockStatus ||
+        (product.is_active === false ? "Sold Out" : "Available"),
+    };
+  };
+
   return (
     <>
       <PageMeta
@@ -200,7 +211,39 @@ export default function Shop() {
           </p>
         </section>
 
-        <section className="shop-tools">
+        <section className="shop-promo-banner">
+          <div>
+            <span>Digital Creator Pack</span>
+            <h2>Ready-to-use assets for faster workflow</h2>
+            <p>
+              Template, preset, LUT, thumbnail pack, dan aset digital untuk
+              creator yang ingin kerja lebih cepat dan rapi.
+            </p>
+          </div>
+
+          <a href="#shop-products">Explore Products</a>
+        </section>
+
+        {featuredProducts.length > 0 && (
+          <section className="featured-products-section">
+            <div className="featured-products-heading">
+              <p className="section-label">Featured</p>
+              <h2>Best Seller Digital Products</h2>
+            </div>
+
+            <div className="shop-grid featured-grid">
+              {featuredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={decorateProduct(product)}
+                  onAddToCart={addToCart}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="shop-tools" id="shop-products">
           <div className="shop-search">
             <input
               type="text"
@@ -258,16 +301,7 @@ export default function Shop() {
             {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}
-                product={{
-                  ...product,
-                  image: getProductImage(product),
-                  category: product.category || "Digital Product",
-                  badge: product.badge || (product.is_sale ? "SALE" : null),
-                  stockStatus:
-                    product.stock_status ||
-                    product.stockStatus ||
-                    (product.is_active === false ? "Sold Out" : "Available"),
-                }}
+                product={decorateProduct(product)}
                 onAddToCart={addToCart}
               />
             ))}
