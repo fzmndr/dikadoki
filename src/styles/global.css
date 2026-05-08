@@ -3521,3 +3521,28 @@ main {
 .product-detail-page {
   padding-top: 180px;
 }
+/* =========================================================
+   PRODUCT DESCRIPTION BLOCK
+========================================================= */
+
+.product-description-block {
+  margin: 24px 0 28px;
+}
+
+.product-description-block h2 {
+  max-width: 620px;
+  margin-bottom: 18px;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.product-description-block p {
+  max-width: 620px;
+  color: #aaa;
+  font-size: 17px;
+  line-height: 1.85;
+  margin-bottom: 0;
+}

@@ -403,11 +403,16 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            <p>
-              {product.short_description ||
-                product.description ||
-                "Produk digital siap pakai untuk kebutuhan kreatif kamu."}
-            </p>
+            <div className="product-description-block">
+              {product.short_description && (
+                <h2>{product.short_description}</h2>
+              )}
+
+              <p>
+                {product.description ||
+                  "Produk digital siap pakai untuk kebutuhan kreatif kamu."}
+              </p>
+            </div>
 
             <div className="product-detail-price-wrap">
               <strong className="product-detail-price">
