@@ -3,7 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 
 import PageMeta from "../components/PageMeta";
 
-import { insertOrderToSupabase } from "../services/orderService";
+import {
+  insertOrderToSupabase,
+  updateOrderPaymentInSupabase,
+} from "../services/orderService";
 
 import { siteConfig } from "../config/site";
 import { routes } from "../config/routes";
@@ -203,29 +206,16 @@ export default function Cart() {
       total,
       totalItems,
       status: orderStatuses.whatsapp,
+      payment: {
+        method: "midtrans",
+        status: "pending",
+        midtransOrderId: orderCode,
+      },
     };
 
     const updatedOrders = [newOrder, ...existingOrders];
 
     localStorage.setItem("orders", JSON.stringify(updatedOrders));
-  };
-
-  const saveOrderToSupabase = async (orderCode) => {
-    try {
-      await insertOrderToSupabase({
-        code: orderCode,
-        customer,
-        items: cartItems,
-        total,
-        totalItems,
-        status: orderStatuses.whatsapp,
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Supabase insert order error:", error);
-      return false;
-    }
   };
 
   const todayDate = new Date().toISOString().split("T")[0];
@@ -240,38 +230,125 @@ export default function Cart() {
     return normalizedPhone.length >= 10 && normalizedPhone.length <= 15;
   };
 
+  const validateCheckout = () => {
+    if (!customer.name.trim()) {
+      return "Nama wajib diisi dulu ya.";
+    }
+
+    if (!customer.phone.trim()) {
+      return "Nomor WhatsApp wajib diisi dulu ya.";
+    }
+
+    if (!isValidPhoneNumber(customer.phone)) {
+      return "Nomor WhatsApp tidak valid. Gunakan 10–15 digit angka.";
+    }
+
+    if (hasServiceProduct && !customer.date.trim()) {
+      return "Tanggal kebutuhan wajib diisi untuk booking service.";
+    }
+
+    if (hasServiceProduct && customer.date < todayDate) {
+      return "Tanggal kebutuhan tidak boleh kurang dari hari ini.";
+    }
+
+    if (cartItems.length === 0) {
+      return "Keranjang masih kosong.";
+    }
+
+    return "";
+  };
+
+  const checkoutMidtrans = async () => {
+    if (isCheckingOut) return;
+
+    setCheckoutSuccess("");
+
+    const validationError = validateCheckout();
+
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
+    setIsCheckingOut(true);
+    setFormError("");
+
+    try {
+      const orderCode = generateOrderCode();
+
+      const order = await insertOrderToSupabase({
+        code: orderCode,
+        customer,
+        items: cartItems,
+        total,
+        totalItems,
+        status: orderStatuses.whatsapp,
+        payment: {
+          method: "midtrans",
+          status: "pending",
+          midtransOrderId: orderCode,
+        },
+      });
+
+      const response = await fetch("/api/create-midtrans-transaction", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          order_id: order.code,
+          gross_amount: order.total,
+          customer: {
+            name: order.customer.name,
+            phone: order.customer.phone,
+            email: "customer@example.com",
+          },
+          items: order.items.map((item) => ({
+            id: item.id,
+            price: item.price,
+            quantity: item.quantity || item.qty || 1,
+            name: item.name || item.title || "Produk",
+          })),
+        }),
+      });
+
+      const payment = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payment.message || "Gagal membuat pembayaran Midtrans");
+      }
+
+      await updateOrderPaymentInSupabase(order.code, {
+        payment_method: "midtrans",
+        payment_status: "pending",
+        midtrans_order_id: order.code,
+        midtrans_token: payment.token,
+        midtrans_redirect_url: payment.redirect_url,
+        midtrans_transaction_status: "pending",
+      });
+
+      saveOrderHistory(order.code);
+      localStorage.setItem("lastOrderCode", order.code);
+      setLastOrderCode(order.code);
+      window.dispatchEvent(new Event("lastOrderUpdated"));
+
+      window.location.href = payment.redirect_url;
+    } catch (error) {
+      console.error("Midtrans checkout error:", error);
+      setFormError(error.message || "Checkout Midtrans gagal.");
+      setIsCheckingOut(false);
+    }
+  };
+
   const checkoutWhatsapp = async () => {
     if (isCheckingOut) return;
 
     setCheckoutSuccess("");
 
-    if (!customer.name.trim()) {
-      setFormError("Nama wajib diisi dulu ya.");
-      return;
-    }
+    const validationError = validateCheckout();
 
-    if (!customer.phone.trim()) {
-      setFormError("Nomor WhatsApp wajib diisi dulu ya.");
-      return;
-    }
-
-    if (!isValidPhoneNumber(customer.phone)) {
-      setFormError("Nomor WhatsApp tidak valid. Gunakan 10–15 digit angka.");
-      return;
-    }
-
-    if (hasServiceProduct && !customer.date.trim()) {
-      setFormError("Tanggal kebutuhan wajib diisi untuk booking service.");
-      return;
-    }
-
-    if (hasServiceProduct && customer.date < todayDate) {
-      setFormError("Tanggal kebutuhan tidak boleh kurang dari hari ini.");
-      return;
-    }
-
-    if (cartItems.length === 0) {
-      setFormError("Keranjang masih kosong.");
+    if (validationError) {
+      setFormError(validationError);
       return;
     }
 
@@ -281,9 +358,52 @@ export default function Cart() {
     const whatsappWindow = window.open("", "_blank");
     const orderCode = generateOrderCode();
 
-    const savedToSupabase = await saveOrderToSupabase(orderCode);
+    try {
+      await insertOrderToSupabase({
+        code: orderCode,
+        customer,
+        items: cartItems,
+        total,
+        totalItems,
+        status: orderStatuses.whatsapp,
+        payment: {
+          method: "whatsapp",
+          status: "pending",
+          midtransOrderId: null,
+        },
+      });
 
-    if (!savedToSupabase) {
+      saveOrderHistory(orderCode);
+      localStorage.setItem("lastOrderCode", orderCode);
+      setLastOrderCode(orderCode);
+      window.dispatchEvent(new Event("lastOrderUpdated"));
+      setCheckoutSuccess("Order berhasil dibuat. WhatsApp sedang dibuka...");
+
+      const phone = siteConfig.whatsappNumber;
+
+      const message = generateOrderMessage({
+        code: orderCode,
+        customer,
+        items: cartItems,
+        total,
+      });
+
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
+        message
+      )}`;
+
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else {
+        window.location.href = whatsappUrl;
+      }
+
+      resetCheckoutState();
+
+      navigate(`${routes.orderSuccess}?code=${orderCode}`);
+    } catch (error) {
+      console.error("Supabase insert order error:", error);
+
       if (whatsappWindow) {
         whatsappWindow.document.write(`
           <html>
@@ -300,46 +420,16 @@ export default function Cart() {
 
       setFormError("Order gagal disimpan ke database. Coba lagi beberapa saat.");
       setCheckoutSuccess("");
+    } finally {
       setIsCheckingOut(false);
-      return;
     }
-
-    saveOrderHistory(orderCode);
-    localStorage.setItem("lastOrderCode", orderCode);
-    setLastOrderCode(orderCode);
-    window.dispatchEvent(new Event("lastOrderUpdated"));
-    setCheckoutSuccess("Order berhasil dibuat. WhatsApp sedang dibuka...");
-
-    const phone = siteConfig.whatsappNumber;
-
-    const message = generateOrderMessage({
-      code: orderCode,
-      customer,
-      items: cartItems,
-      total,
-    });
-
-    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(
-      message
-    )}`;
-
-    if (whatsappWindow) {
-      whatsappWindow.location.href = whatsappUrl;
-    } else {
-      window.location.href = whatsappUrl;
-    }
-
-    resetCheckoutState();
-    setIsCheckingOut(false);
-
-    navigate(`${routes.orderSuccess}?code=${orderCode}`);
   };
 
   return (
     <>
       <PageMeta
         title="Cart"
-        description="Tinjau keranjang belanja dikadoki dan lanjutkan checkout melalui WhatsApp."
+        description="Tinjau keranjang belanja dikadoki dan lanjutkan checkout melalui WhatsApp atau QRIS Midtrans."
       />
 
       <main className="cart-page">
@@ -348,7 +438,7 @@ export default function Cart() {
           <h1>Shopping Cart</h1>
           <p>
             Review produk atau layanan yang kamu pilih, lalu isi data checkout
-            sebelum lanjut ke WhatsApp.
+            sebelum lanjut pembayaran.
           </p>
         </section>
 
@@ -554,13 +644,23 @@ export default function Cart() {
 
                 <button
                   type="button"
-                  onClick={checkoutWhatsapp}
+                  onClick={checkoutMidtrans}
                   className="cart-whatsapp-btn"
                   disabled={isCheckingOut}
                 >
                   {isCheckingOut
-                    ? "Processing Order..."
-                    : "Checkout via WhatsApp"}
+                    ? "Memproses Pembayaran..."
+                    : "Bayar QRIS / Midtrans"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={checkoutWhatsapp}
+                  className="clear-cart-btn"
+                  disabled={isCheckingOut}
+                  style={{ width: "100%", marginTop: "12px" }}
+                >
+                  Checkout via WhatsApp
                 </button>
               </aside>
             </div>

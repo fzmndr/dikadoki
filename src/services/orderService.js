@@ -7,6 +7,7 @@ export const normalizeOrder = (order) => {
     id: order.id,
     code: order.order_code,
     date: order.created_at,
+
     customer: {
       name: order.customer_name,
       phone: order.customer_phone,
@@ -14,28 +15,73 @@ export const normalizeOrder = (order) => {
       orderType: order.order_type,
       note: order.customer_note,
     },
+
     internalNote: order.internal_note || "",
     status: order.status || orderStatuses.whatsapp,
     total: Number(order.total || 0),
     totalItems: order.total_items || 0,
     items: order.items || [],
+
+    payment: {
+      method: order.payment_method || null,
+      status: order.payment_status || "pending",
+      midtransOrderId: order.midtrans_order_id || null,
+      midtransTransactionStatus: order.midtrans_transaction_status || null,
+      midtransRedirectUrl: order.midtrans_redirect_url || null,
+      midtransToken: order.midtrans_token || null,
+      paidAt: order.paid_at || null,
+    },
   };
 };
 
 export const createOrderPayload = (order) => {
+  const orderCode = order.code || order.order_code;
+
   return {
-    order_code: order.code || order.order_code,
+    order_code: orderCode,
+
     customer_name: order.customer?.name || order.customer_name || "-",
     customer_phone: order.customer?.phone || order.customer_phone || null,
     customer_date: order.customer?.date || order.customer_date || null,
-    order_type: order.customer?.orderType || order.order_type || orderTypes.bookingService,
+    order_type:
+      order.customer?.orderType ||
+      order.order_type ||
+      orderTypes.bookingService,
     customer_note: order.customer?.note || order.customer_note || null,
+
     internal_note: order.internalNote || order.internal_note || "",
     status: order.status || orderStatuses.whatsapp,
+
     total: Number(order.total || 0),
     total_items: order.totalItems || order.total_items || 0,
     items: order.items || [],
+
     created_at: order.date || order.created_at || new Date().toISOString(),
+
+    payment_method: order.payment?.method || order.payment_method || "midtrans",
+    payment_status: order.payment?.status || order.payment_status || "pending",
+
+    midtrans_order_id:
+      order.payment?.midtransOrderId ||
+      order.midtrans_order_id ||
+      orderCode,
+
+    midtrans_transaction_status:
+      order.payment?.midtransTransactionStatus ||
+      order.midtrans_transaction_status ||
+      null,
+
+    midtrans_redirect_url:
+      order.payment?.midtransRedirectUrl ||
+      order.midtrans_redirect_url ||
+      null,
+
+    midtrans_token:
+      order.payment?.midtransToken ||
+      order.midtrans_token ||
+      null,
+
+    paid_at: order.payment?.paidAt || order.paid_at || null,
   };
 };
 
@@ -55,7 +101,32 @@ export const fetchOrdersFromSupabase = async () => {
 export const insertOrderToSupabase = async (order) => {
   const payload = createOrderPayload(order);
 
-  const { error } = await supabase.from("orders").insert([payload]);
+  const { data, error } = await supabase
+    .from("orders")
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return normalizeOrder(data);
+};
+
+export const updateOrderPaymentInSupabase = async (orderCode, paymentData) => {
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      payment_method: paymentData.payment_method || "midtrans",
+      payment_status: paymentData.payment_status || "pending",
+      midtrans_order_id: paymentData.midtrans_order_id || orderCode,
+      midtrans_token: paymentData.midtrans_token || null,
+      midtrans_redirect_url: paymentData.midtrans_redirect_url || null,
+      midtrans_transaction_status:
+        paymentData.midtrans_transaction_status || "pending",
+    })
+    .eq("order_code", orderCode);
 
   if (error) {
     throw error;
@@ -65,7 +136,9 @@ export const insertOrderToSupabase = async (order) => {
 };
 
 export const upsertOrdersToSupabase = async (orders) => {
-  const payload = orders.map(createOrderPayload).filter((order) => order.order_code);
+  const payload = orders
+    .map(createOrderPayload)
+    .filter((order) => order.order_code);
 
   const { error } = await supabase
     .from("orders")
